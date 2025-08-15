@@ -1,4 +1,4 @@
-
+/* Login Container */
 .login-container {
   height: 100vh;
   display: flex;
@@ -8,6 +8,7 @@
   overflow: hidden;
 }
 
+/* Background with movie posters */
 .login-background {
   position: absolute;
   top: 0;
@@ -93,6 +94,7 @@
   border-radius: 20px;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
   border: 1px solid rgba(255, 255, 255, 0.2);
+  overflow: hidden;
 }
 
 .login-card .ant-card-body {
@@ -168,6 +170,29 @@
   color: #ff6b35;
 }
 
+/* Login Options */
+.login-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 25px;
+}
+
+.login-remember .ant-checkbox-checked .ant-checkbox-inner {
+  background-color: #ff6b35;
+  border-color: #ff6b35;
+}
+
+.forgot-password {
+  color: #ff6b35;
+  padding: 0;
+  font-size: 14px;
+}
+
+.forgot-password:hover {
+  color: #e55a2b;
+}
+
 /* Login Button */
 .login-button {
   height: 50px;
@@ -186,6 +211,10 @@
   transform: translateY(-2px);
   box-shadow: 0 6px 20px rgba(255, 107, 53, 0.4);
   background: linear-gradient(45deg, #e55a2b, #e8841a);
+}
+
+.login-button:active {
+  transform: translateY(0);
 }
 
 /* Footer */
@@ -208,6 +237,10 @@
 /* Form Item Spacing */
 .ant-form-item {
   margin-bottom: 20px;
+}
+
+.ant-form-item-label {
+  padding-bottom: 4px;
 }
 
 /* Responsive */
@@ -245,4 +278,23 @@
     width: 120px;
     height: 180px;
   }
+}
+
+/* Loading State */
+.ant-btn-loading {
+  pointer-events: none;
+}
+
+/* Error States */
+.ant-form-item-has-error .login-input {
+  border-color: #ff4d4f;
+}
+
+.ant-form-item-has-error .login-input:hover {
+  border-color: #ff4d4f;
+  box-shadow: 0 0 0 2px rgba(255, 77, 79, 0.1);
+}
+
+.ant-form-item-has-error .site-form-item-icon {
+  color: #ff4d4f;
 }

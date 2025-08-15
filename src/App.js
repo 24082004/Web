@@ -15,7 +15,7 @@ import CreateDirector from './Pages/CreateDirector';
 import CreateEmployee from './Pages/CreateEmployee';
 import SeatManagement from './Pages/SeatManagement';
 import RoomList from './Pages/RoomList';
-import Login from './Pages/Login'; // import trang đăng nhập
+import AdminLogin from './Pages/AdminLogin'; // import trang đăng nhập
 
 function App() {
   const isAuthenticated = !!localStorage.getItem('adminToken');
@@ -26,7 +26,12 @@ function App() {
 
       <Route
         path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <Login />}
+        element={isAuthenticated ? <Navigate to="/" replace /> : <AdminLogin />}
+      />
+      
+      <Route
+        path="/admin/login"
+        element={isAuthenticated ? <Navigate to="/" replace /> : <AdminLogin />}
       />
 
       {/* Các route yêu cầu đăng nhập */}
