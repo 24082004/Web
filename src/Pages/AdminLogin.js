@@ -1,8 +1,8 @@
-// src/components/AdminLogin.js
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Mail, Lock, AlertCircle, CheckCircle, Shield } from 'lucide-react';
 import AuthService from '../services/authService';
+import './AdminLogin.css';
 
 const AdminLogin = () => {
   const navigate = useNavigate();
@@ -17,6 +17,12 @@ const AdminLogin = () => {
 
   // Check if admin is already logged in
   useEffect(() => {
+    // Clear any existing tokens first for testing
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('adminUser');
+    
     if (AuthService.isAdminAuthenticated()) {
       setMessage({ type: 'success', text: 'Bạn đã đăng nhập rồi!' });
       // Redirect to dashboard
@@ -66,13 +72,6 @@ const AdminLogin = () => {
     }
   };
 
-  const handleTestLogin = () => {
-    setLoginData({
-      email: 'admin@company.com',
-      password: 'admin123456'
-    });
-    setMessage({ type: 'info', text: 'Đã điền thông tin test admin' });
-  };
 
   // Handle logout (for testing)
   const handleLogout = () => {
@@ -82,70 +81,58 @@ const AdminLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-      {/* Background Effects */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-3/4 right-1/4 w-96 h-96 bg-blue-500 rounded-full mix-blend-multiply filter blur-xl opacity-20 animate-pulse"></div>
-      </div>
-
+    <div className="admin-login-container">
       {/* Main Login Container */}
-      <div className="relative bg-white/5 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/10 p-8 w-full max-w-md">
+      <div className="admin-login-card">
         {/* Header */}
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-600 to-blue-600 rounded-full mb-4">
-            <Shield className="w-8 h-8 text-white" />
+        <div className="admin-login-header">
+          <div className="admin-login-icon">
+            <Shield />
           </div>
-          <h1 className="text-3xl font-bold text-white mb-2">Admin Portal</h1>
-          <p className="text-gray-300 text-sm">Đăng nhập vào hệ thống quản trị</p>
+          <h1 className="admin-login-title">Admin Portal</h1>
+          <p className="admin-login-subtitle">Đăng nhập vào hệ thống quản trị</p>
         </div>
 
         {/* Message Display */}
         {message.text && (
-          <div className={`mb-6 p-4 rounded-xl flex items-center gap-3 ${
-            message.type === 'success' 
-              ? 'bg-green-500/10 text-green-300 border border-green-500/20' 
-              : message.type === 'info'
-              ? 'bg-blue-500/10 text-blue-300 border border-blue-500/20'
-              : 'bg-red-500/10 text-red-300 border border-red-500/20'
-          }`}>
+          <div className={`admin-message ${message.type}`}>
             {message.type === 'success' ? <CheckCircle size={20} /> : <AlertCircle size={20} />}
-            <span className="text-sm font-medium">{message.text}</span>
+            <span style={{marginLeft: '0.75rem'}}>{message.text}</span>
           </div>
         )}
 
         {/* Login Form */}
-        <div className="space-y-6">
+        <div className="admin-login-form">
           {/* Email Input */}
-          <div className="relative">
-            <Mail className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+          <div className="admin-form-group">
+            <Mail className="admin-form-icon" />
             <input
               type="email"
               placeholder="Email admin"
               value={loginData.email}
               onChange={(e) => setLoginData({ ...loginData, email: e.target.value })}
               onKeyPress={handleKeyPress}
-              className="w-full pl-12 pr-4 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all duration-200"
+              className="admin-form-input"
               autoComplete="email"
             />
           </div>
 
           {/* Password Input */}
-          <div className="relative">
-            <Lock className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
+          <div className="admin-form-group">
+            <Lock className="admin-form-icon" />
             <input
               type={showPassword ? "text" : "password"}
               placeholder="Mật khẩu"
               value={loginData.password}
               onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
               onKeyPress={handleKeyPress}
-              className="w-full pl-12 pr-12 py-4 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent backdrop-blur-sm transition-all duration-200"
+              className="admin-form-input"
               autoComplete="current-password"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-4 top-4 h-5 w-5 text-gray-400 hover:text-white transition-colors"
+              className="admin-toggle-password"
             >
               {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
             </button>
@@ -155,11 +142,11 @@ const AdminLogin = () => {
           <button
             onClick={handleLogin}
             disabled={loading}
-            className="w-full bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 rounded-xl font-semibold text-lg hover:from-purple-700 hover:to-blue-700 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98]"
+            className={`admin-login-button ${loading ? 'admin-loading' : ''}`}
           >
             {loading ? (
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem' }}>
+                <div className="admin-spinner"></div>
                 Đang đăng nhập...
               </div>
             ) : (
@@ -167,20 +154,12 @@ const AdminLogin = () => {
             )}
           </button>
 
-          {/* Test Login Button */}
-          <button
-            onClick={handleTestLogin}
-            disabled={loading}
-            className="w-full bg-white/5 border border-white/10 text-gray-300 py-3 rounded-xl font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            Điền thông tin test
-          </button>
-
           {/* Logout Button (for testing) */}
           {AuthService.isAdminAuthenticated() && (
             <button
               onClick={handleLogout}
-              className="w-full bg-red-600/20 border border-red-500/30 text-red-300 py-3 rounded-xl font-medium hover:bg-red-600/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200"
+              className="admin-test-button"
+              style={{backgroundColor: 'rgba(239, 68, 68, 0.2)', borderColor: 'rgba(239, 68, 68, 0.3)', color: '#fca5a5'}}
             >
               Đăng xuất
             </button>
@@ -188,22 +167,10 @@ const AdminLogin = () => {
         </div>
 
         {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-gray-400 text-xs">
-            © 2025 Admin System. Chỉ dành cho quản trị viên.
-          </p>
+        <div className="admin-login-footer">
+          <p>© 2025 Admin System. Chỉ dành cho quản trị viên.</p>
         </div>
       </div>
-
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 flex items-center gap-3">
-            <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-            <span className="text-white font-medium">Đang xử lý...</span>
-          </div>
-        </div>
-      )}
     </div>
   );
 };
