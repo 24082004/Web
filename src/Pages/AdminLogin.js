@@ -18,6 +18,12 @@ const AdminLogin = () => {
 
   // Check if admin is already logged in
   useEffect(() => {
+    // Clear any existing tokens first for testing
+    localStorage.removeItem('adminToken');
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('adminUser');
+    
     if (AuthService.isAdminAuthenticated()) {
       setMessage({ type: 'success', text: 'Bạn đã đăng nhập rồi!' });
       // Redirect to dashboard
