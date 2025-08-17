@@ -1,69 +1,174 @@
-import React from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import './App.css';
-import Users from './Pages/Users';
-import EmployeeList from './Pages/EmployeeList';
-import EmployeeDetail from './Pages/EmployeeDetail';
-import MainLayout from './Components/MainLayout';
-import MovieList from './Pages/MovieList';
-import AddMovie from './Pages/AddMovie';
-import DirectorList from './Pages/DirectorList';
-import RevenueStatistics from './Pages/RevenueStatistics';
-import BookingHistory from './Pages/BookingHistory';
-import TicketDetail from './Pages/TicketDetail';
-import CreateDirector from './Pages/CreateDirector';
-import CreateEmployee from './Pages/CreateEmployee';
-import SeatManagement from './Pages/SeatManagement';
-import RoomList from './Pages/RoomList';
-import AdminLogin from './Pages/AdminLogin'; // import trang đăng nhập
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import "./App.css";
+import AdminLogin from "./Pages/AdminLogin";
+import Users from "./Pages/Users";
+import EmployeeList from "./Pages/EmployeeList";
+import EmployeeDetail from "./Pages/EmployeeDetail";
+import MainLayout from "./Components/MainLayout";
+import MovieList from "./Pages/MovieList";
+import AddMovie from "./Pages/AddMovie";
+import DirectorList from "./Pages/DirectorList";
+import RevenueStatistics from "./Pages/RevenueStatistics";
+import AuthService from "./services/authService";
+import CreateDirector from "./Pages/CreateDirector";
+import CreateEmployee from "./Pages/CreateEmployee";
+import SeatManagement from "./Pages/SeatManagement";
+import TicketDetail from "./Pages/TicketDetail";
+
+// Protected Route Component
+const ProtectedRoute = ({ children }) => {
+  const isAuthenticated = AuthService.isAdminAuthenticated();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <MainLayout>{children}</MainLayout>;
+};
+
+// Public Route Component (for login)
+const PublicRoute = ({ children }) => {
+  const isAuthenticated = AuthService.isAdminAuthenticated();
+
+  if (isAuthenticated) {
+    return <Navigate to="/admin/dashboard" replace />;
+  }
+
+  return children;
+};
 
 function App() {
-  const isAuthenticated = !!localStorage.getItem('adminToken');
-  const location = useLocation();
-
   return (
     <Routes>
-
-      <Route
-        path="/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <AdminLogin />}
-      />
-      
+      {/* Login Route - Public */}
       <Route
         path="/admin/login"
-        element={isAuthenticated ? <Navigate to="/" replace /> : <AdminLogin />}
-      />
-
-      {/* Các route yêu cầu đăng nhập */}
-      <Route
-        path="/*"
         element={
-          isAuthenticated ? (
-            <MainLayout>
-              <Routes>
-                <Route path="/" element={<RevenueStatistics />} />
-                <Route path="/statistics" element={<RevenueStatistics />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/movie/list" element={<MovieList />} />
-                <Route path="/addmovie" element={<AddMovie />} />
-                <Route path="/employees" element={<EmployeeList />} />
-                <Route path="/employees/:id" element={<EmployeeDetail />} />
-                <Route path="/directors" element={<DirectorList />} />
-                <Route path="/bookings" element={<BookingHistory />} />
-                <Route path="/bookings/:id" element={<TicketDetail />} />
-                <Route path="/directors/create" element={<CreateDirector />} />
-                <Route path="/employees/create" element={<CreateEmployee />} />
-                <Route path="/seats" element={<SeatManagement />} />
-                <Route path="/rooms" element={<RoomList />} />
-                {/* Fallback nếu không có route phù hợp */}
-                <Route path="*" element={<Navigate to="/" />} />
-              </Routes>
-            </MainLayout>
-          ) : (
-            <Navigate to="/login" replace state={{ from: location }} />
-          )
+          <PublicRoute>
+            <AdminLogin />
+          </PublicRoute>
         }
       />
+
+      {/* Default route - Redirect to login */}
+      <Route path="/" element={<Navigate to="/admin/login" replace />} />
+
+      {/* Protected Admin Routes */}
+      <Route
+        path="/admin/dashboard"
+        element={
+          <ProtectedRoute>
+            <RevenueStatistics />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/statistics"
+        element={
+          <ProtectedRoute>
+            <RevenueStatistics />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/customers"
+        element={
+          <ProtectedRoute>
+            <Users />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Movie Management Routes */}
+      <Route
+        path="/admin/movie/list"
+        element={
+          <ProtectedRoute>
+            <MovieList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/addmovie"
+        element={
+          <ProtectedRoute>
+            <AddMovie />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Directors Routes */}
+      <Route
+        path="/admin/directors"
+        element={
+          <ProtectedRoute>
+            <DirectorList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/directors/create"
+        element={
+          <ProtectedRoute>
+            <CreateDirector />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Employee Routes */}
+      <Route
+        path="/admin/employees"
+        element={
+          <ProtectedRoute>
+            <EmployeeList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/employees/:id"
+        element={
+          <ProtectedRoute>
+            <EmployeeDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/employees/create"
+        element={
+          <ProtectedRoute>
+            <CreateEmployee />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Other Routes */}
+      <Route
+        path="/admin/seat-management"
+        element={
+          <ProtectedRoute>
+            <SeatManagement />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/bookings/:id"
+        element={
+          <ProtectedRoute>
+            <TicketDetail />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Catch-all redirect */}
+      <Route path="*" element={<Navigate to="/admin/login" replace />} />
     </Routes>
   );
 }

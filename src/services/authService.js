@@ -216,6 +216,7 @@ class AuthService {
    */
   isAdminAuthenticated() {
     return this.isAuthenticated() && this.isAdmin();
+    // return true;
   }
 
   /**
@@ -322,5 +323,5 @@ class AuthService {
   }
 }
 
-// Export singleton instance
-export default new AuthService();
+const authService = new AuthService();
+export default authService;
