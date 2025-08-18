@@ -13,7 +13,8 @@ import RevenueStatistics from "./Pages/RevenueStatistics";
 import AuthService from "./services/authService";
 import CreateDirector from "./Pages/CreateDirector";
 import CreateEmployee from "./Pages/CreateEmployee";
-import SeatManagement from "./Pages/SeatManagement";
+// import SeatManagement from "./Pages/SeatList";
+import SeatList from "./Pages/SeatList";
 import TicketDetail from "./Pages/TicketDetail";
 
 // Protected Route Component
@@ -148,7 +149,7 @@ function App() {
         }
       />
 
-      {/* Other Routes */}
+      {/* Other Routes
       <Route
         path="/admin/seat-management"
         element={
@@ -156,7 +157,17 @@ function App() {
             <SeatManagement />
           </ProtectedRoute>
         }
+      /> */}
+
+      <Route
+        path="/admin/seats"
+        element={
+          <ProtectedRoute>
+            <SeatList />
+          </ProtectedRoute>
+        }
       />
+
 
       <Route
         path="/admin/bookings/:id"
