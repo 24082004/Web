@@ -18,6 +18,8 @@ import TicketDetail from "./Pages/TicketDetail";
 import EditMovie from "./Pages/EditMovie";
 import GenreList from "./Pages/GenreList";
 import CreateGenre from "./Pages/CreateGenre";
+import ActorList from "./Pages/ActorList";
+import CreateActor from "./Pages/CreateActor";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -146,6 +148,25 @@ function App() {
         element={
           <ProtectedRoute>
             <GenreList />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Actor Routes */}
+      <Route
+        path="/admin/actors"
+        element={
+          <ProtectedRoute>
+            <ActorList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/actors/create"
+        element={
+          <ProtectedRoute>
+            <CreateActor />
           </ProtectedRoute>
         }
       />
