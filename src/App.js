@@ -13,7 +13,6 @@ import RevenueStatistics from "./Pages/RevenueStatistics";
 import AuthService from "./services/authService";
 import CreateDirector from "./Pages/CreateDirector";
 import CreateEmployee from "./Pages/CreateEmployee";
-// import SeatManagement from "./Pages/SeatList";
 import SeatList from "./Pages/SeatList";
 import TicketDetail from "./Pages/TicketDetail";
 

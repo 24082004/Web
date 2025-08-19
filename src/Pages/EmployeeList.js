@@ -24,7 +24,7 @@ import {
   EditOutlined 
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import ApiService from '../services/ApiService';
+import ApiService from '../config/api';
 import moment from 'moment';
 
 const { Search } = Input;

@@ -25,7 +25,7 @@ import {
   HistoryOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import ApiService from '../services/ApiService'; // Adjust the import path as necessary
+import ApiService from '../config/api';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
