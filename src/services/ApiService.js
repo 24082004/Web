@@ -1,202 +1,253 @@
 // src/services/ApiService.js
-const API_BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  "https://my-backend-api-movie.onrender.com/api";
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://my-backend-api-movie.onrender.com/api';
 
 class ApiService {
   constructor() {
     this.baseURL = API_BASE_URL;
   }
 
-  // Generic request method
+  // ============ UTILITY METHODS ============
+  getBaseURL() {
+    return this.baseURL;
+  }
+
+  setBaseURL(url) {
+    this.baseURL = url;
+  }
+
+  // Generic request method with improved error handling
   async request(endpoint, options = {}) {
     const url = `${this.baseURL}${endpoint}`;
-
-    let headers = {
-      ...options.headers,
+    const config = {
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+      ...options,
     };
-
-    // Nếu body KHÔNG phải FormData => set Content-Type JSON
-    if (!(options.body instanceof FormData)) {
-      headers["Content-Type"] = "application/json";
-      if (options.body && typeof options.body !== "string") {
-        options.body = JSON.stringify(options.body);
-      }
-    }
 
     // Add auth token if available
-    const token =
-      localStorage.getItem("adminToken") || localStorage.getItem("token");
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
     if (token) {
-      headers.Authorization = `Bearer ${token}`;
+      config.headers.Authorization = `Bearer ${token}`;
     }
-
-    const config = {
-      ...options,
-      headers,
-    };
 
     try {
       const response = await fetch(url, config);
-
-    if (!response.ok) {
-      if (response.status === 401) {
-        throw new Error('Email hoặc mật khẩu không đúng, vui lòng thử lại.');
-      } else if (response.status === 403) {
-        throw new Error('Bạn không có quyền truy cập.');
-      } else if (response.status === 404) {
-        throw new Error('Không tìm thấy tài nguyên.');
-      } else {
-        throw new Error(`Lỗi máy chủ: ${response.status}`);
+      
+      // Check if response is ok
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
       }
-    }
-
-
+      
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error(error);
-      throw new Error(error.message);
+      console.error('API Error:', error);
+      throw new Error(`API Error: ${error.message}`);
     }
   }
 
-  // ================= Auth methods =================
+  // Generic file upload method
+  async uploadFile(endpoint, formData) {
+    const url = `${this.baseURL}${endpoint}`;
+    const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
+    
+    const config = {
+      method: 'PUT',
+      headers: {},
+      body: formData,
+    };
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    try {
+      const response = await fetch(url, config);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Upload Error:', error);
+      throw error;
+    }
+  }
+
+  // ============ AUTHENTICATION ============
   async login(credentials) {
-    return this.request("/auth/login", {
-      method: "POST",
-      body: credentials,
+    return this.request('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(credentials),
     });
   }
 
   async register(userData) {
-    return this.request("/auth/register", {
-      method: "POST",
-      body: userData,
+    return this.request('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(userData),
     });
   }
 
   async verifyEmail(otpData) {
-    return this.request("/auth/verify-email", {
-      method: "POST",
-      body: otpData,
+    return this.request('/auth/verify-email', {
+      method: 'POST',
+      body: JSON.stringify(otpData),
     });
   }
 
   async resendOTP(email) {
-    return this.request("/auth/resend-otp", {
-      method: "POST",
-      body: { email },
+    return this.request('/auth/resend-otp', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 
   async getMe() {
-    return this.request("/auth/me");
+    return this.request('/auth/me');
   }
 
   async logout() {
-    return this.request("/auth/logout", {
-      method: "POST",
+    return this.request('/auth/logout', {
+      method: 'POST',
     });
   }
 
   async forgotPassword(email) {
-    return this.request("/auth/forgot-password", {
-      method: "POST",
-      body: { email },
+    return this.request('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
     });
   }
 
   async resetPassword(resetData) {
-    return this.request("/auth/reset-password", {
-      method: "POST",
-      body: resetData,
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(resetData),
     });
   }
 
-  // ================= Admin methods =================
-  async getUsers() {
-    return this.request("/admin/users");
+  // ============ USER MANAGEMENT ============
+  async getUsers(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/users${queryString ? `?${queryString}` : ''}`);
   }
 
   async getUserById(id) {
-    return this.request(`/admin/users/${id}`);
+    return this.request(`/users/${id}`);
+  }
+
+  async createUser(userData) {
+    return this.request('/users', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+    });
   }
 
   async updateUser(id, userData) {
-    return this.request(`/admin/users/${id}`, {
-      method: "PUT",
-      body: userData,
+    return this.request(`/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData),
     });
   }
 
   async deleteUser(id) {
-    return this.request(`/admin/users/${id}`, {
-      method: "DELETE",
+    return this.request(`/users/${id}`, {
+      method: 'DELETE',
     });
   }
 
-  // ================= Director methods =================
-  async getDirectors() {
-    return this.request("/directors");
+  async getUserStats() {
+    return this.request('/users/stats');
   }
 
-  async getDirectorById(id) {
-    return this.request(`/directors/${id}`);
+  async uploadUserAvatar(formData) {
+    return this.uploadFile('/users/upload-avatar', formData);
   }
 
-  async createDirector(directorData) {
-    return this.request("/directors", {
-      method: "POST",
-      body: directorData,
-    });
+  // ============ MOVIE MANAGEMENT ============
+  async getMovies(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/movies${queryString ? `?${queryString}` : ''}`);
   }
 
-  async updateDirector(id, directorData) {
-    return this.request(`/directors/${id}`, {
-      method: "PUT",
-      body: directorData,
-    });
-  }
-
-  async deleteDirector(id) {
-    return this.request(`/directors/${id}`, {
-      method: "DELETE",
-    });
-  }
-
-  // ================= Movie methods =================
-  async getMovies() {
-    return this.request("/movies");
+  async getMoviesWithGenres(params = {}) {
+    const queryString = new URLSearchParams({
+      ...params,
+      include: 'genres'
+    }).toString();
+    return this.request(`/movies${queryString ? `?${queryString}` : ''}`);
   }
 
   async getMovieById(id) {
     return this.request(`/movies/${id}`);
   }
 
-  // createMovie giờ có thể nhận FormData
   async createMovie(movieData) {
-    return this.request("/movies", {
-      method: "POST",
-      body: movieData,
+    return this.request('/movies', {
+      method: 'POST',
+      body: JSON.stringify(movieData),
     });
   }
 
   async updateMovie(id, movieData) {
     return this.request(`/movies/${id}`, {
-      method: "PUT",
-      body: movieData,
+      method: 'PUT',
+      body: JSON.stringify(movieData),
     });
   }
 
   async deleteMovie(id) {
     return this.request(`/movies/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
-  // ================= Actor methods =================
-  async getActors() {
-    return this.request("/actors");
+  // ============ GENRE MANAGEMENT ============
+  async getGenres(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/genres${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getGenreById(id) {
+    return this.request(`/genres/${id}`);
+  }
+
+  async createGenre(genreData) {
+    return this.request('/genres', {
+      method: 'POST',
+      body: JSON.stringify(genreData),
+    });
+  }
+
+  async updateGenre(id, genreData) {
+    return this.request(`/genres/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(genreData),
+    });
+  }
+
+  async deleteGenre(id) {
+    return this.request(`/genres/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getGenresForSelect() {
+    return this.request('/genres/select');
+  }
+
+  async getGenreStatistics() {
+    return this.request('/genres/statistics');
+  }
+
+  // ============ ACTOR MANAGEMENT ============
+  async getActors(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/actors${queryString ? `?${queryString}` : ''}`);
   }
 
   async getActorById(id) {
@@ -204,71 +255,75 @@ class ApiService {
   }
 
   async createActor(actorData) {
-    return this.request("/actors", {
-      method: "POST",
-      body: actorData,
+    return this.request('/actors', {
+      method: 'POST',
+      body: JSON.stringify(actorData),
     });
   }
 
   async updateActor(id, actorData) {
     return this.request(`/actors/${id}`, {
-      method: "PUT",
-      body: actorData,
+      method: 'PUT',
+      body: JSON.stringify(actorData),
     });
   }
 
   async deleteActor(id) {
     return this.request(`/actors/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
-  async uploadActorImage(id, imageData) {
-    return this.request(`/actors/${id}/image`, {
-      method: "PUT",
-      body: imageData,
+  async getActorsForSelect() {
+    return this.request('/actors/select');
+  }
+
+  async uploadActorImage(actorId, formData) {
+    return this.uploadFile(`/actors/${actorId}/image`, formData);
+  }
+
+  // ============ DIRECTOR MANAGEMENT ============
+  async getDirectors(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/directors${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getDirectorById(id) {
+    return this.request(`/directors/${id}`);
+  }
+
+  async createDirector(directorData) {
+    return this.request('/directors', {
+      method: 'POST',
+      body: JSON.stringify(directorData),
     });
   }
 
-  // ================= Food methods =================
-  async getFoods() {
-    return this.request("/foods");
-  }
-
-  async getFoodById(id) {
-    return this.request(`/foods/${id}`);
-  }
-
-  async createFood(foodData) {
-    return this.request("/foods", {
-      method: "POST",
-      body: foodData,
+  async updateDirector(id, directorData) {
+    return this.request(`/directors/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(directorData),
     });
   }
 
-  async updateFood(id, foodData) {
-    return this.request(`/foods/${id}`, {
-      method: "PUT",
-      body: foodData,
+  async deleteDirector(id) {
+    return this.request(`/directors/${id}`, {
+      method: 'DELETE',
     });
   }
 
-  async deleteFood(id) {
-    return this.request(`/foods/${id}`, {
-      method: "DELETE",
-    });
+  async getDirectorsForSelect() {
+    return this.request('/directors/select');
   }
 
-  async uploadFoodImage(id, imageData) {
-    return this.request(`/foods/${id}/image`, {
-      method: "PUT",
-      body: imageData,
-    });
+  async uploadDirectorImage(directorId, formData) {
+    return this.uploadFile(`/directors/${directorId}/image`, formData);
   }
 
-  // ================= Cinema methods =================
-  async getCinemas() {
-    return this.request("/cinemas");
+  // ============ CINEMA MANAGEMENT ============
+  async getCinemas(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/cinemas${queryString ? `?${queryString}` : ''}`);
   }
 
   async getCinemaById(id) {
@@ -276,65 +331,35 @@ class ApiService {
   }
 
   async createCinema(cinemaData) {
-    return this.request("/cinemas", {
-      method: "POST",
-      body: cinemaData,
+    return this.request('/cinemas', {
+      method: 'POST',
+      body: JSON.stringify(cinemaData),
     });
   }
 
   async updateCinema(id, cinemaData) {
     return this.request(`/cinemas/${id}`, {
-      method: "PUT",
-      body: cinemaData,
+      method: 'PUT',
+      body: JSON.stringify(cinemaData),
     });
   }
 
   async deleteCinema(id) {
     return this.request(`/cinemas/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
-  // ================= Discount methods =================
-  async getDiscounts() {
-    return this.request("/discounts");
-  }
-
-  async getDiscountById(id) {
-    return this.request(`/discounts/${id}`);
-  }
-
-  async verifyDiscount(code) {
-    return this.request(`/discounts/verify/${code}`);
-  }
-
-  async createDiscount(discountData) {
-    return this.request("/discounts", {
-      method: "POST",
-      body: discountData,
+  async toggleCinemaStatus(id) {
+    return this.request(`/cinemas/${id}/toggle-status`, {
+      method: 'PUT',
     });
   }
 
-  async updateDiscount(id, discountData) {
-    return this.request(`/discounts/${id}`, {
-      method: "PUT",
-      body: discountData,
-    });
-  }
-
-  async deleteDiscount(id) {
-    return this.request(`/discounts/${id}`, {
-      method: "DELETE",
-    });
-  }
-
-  // ================= Room methods =================
-  async getRooms(cinemaId = null) {
-    let endpoint = "/rooms";
-    if (cinemaId) {
-      endpoint = `/rooms/cinema/${cinemaId}`;
-    }
-    return this.request(endpoint);
+  // ============ ROOM MANAGEMENT ============
+  async getRooms(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/rooms${queryString ? `?${queryString}` : ''}`);
   }
 
   async getRoomById(id) {
@@ -342,28 +367,28 @@ class ApiService {
   }
 
   async createRoom(roomData) {
-    return this.request("/rooms", {
-      method: "POST",
-      body: roomData,
+    return this.request('/rooms', {
+      method: 'POST',
+      body: JSON.stringify(roomData),
     });
   }
 
   async updateRoom(id, roomData) {
     return this.request(`/rooms/${id}`, {
-      method: "PUT",
-      body: roomData,
+      method: 'PUT',
+      body: JSON.stringify(roomData),
     });
   }
 
   async deleteRoom(id) {
     return this.request(`/rooms/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
-  // ================= Seat methods =================
+  // ============ SEAT MANAGEMENT ============
   async getSeats() {
-    return this.request("/seats");
+    return this.request('/seats');
   }
 
   async getSeatById(id) {
@@ -375,55 +400,320 @@ class ApiService {
   }
 
   async createSeat(seatData) {
-    return this.request("/seats", {
-      method: "POST",
-      body: seatData,
+    return this.request('/seats', {
+      method: 'POST',
+      body: JSON.stringify(seatData),
     });
   }
 
   async createBulkSeats(seatsData) {
-    return this.request("/seats/bulk", {
-      method: "POST",
-      body: { seats: seatsData },
+    return this.request('/seats/bulk', {
+      method: 'POST',
+      body: JSON.stringify({ seats: seatsData }),
     });
   }
 
   async autoGenerateSeats(roomId, configData) {
     return this.request(`/seats/auto-generate/${roomId}`, {
-      method: "POST",
-      body: configData,
+      method: 'POST',
+      body: JSON.stringify(configData),
     });
   }
 
   async updateSeat(id, seatData) {
     return this.request(`/seats/${id}`, {
-      method: "PUT",
-      body: seatData,
+      method: 'PUT',
+      body: JSON.stringify(seatData),
     });
   }
 
   async deleteSeat(id) {
     return this.request(`/seats/${id}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
   async deleteAllSeatsInRoom(roomId) {
     return this.request(`/seats/room/${roomId}`, {
-      method: "DELETE",
+      method: 'DELETE',
     });
   }
 
-
-  // ================= Utility =================
-  getBaseURL() {
-    return this.baseURL;
+  // ============ SHOWTIME MANAGEMENT ============
+  async getShowtimes(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/showtimes${queryString ? `?${queryString}` : ''}`);
   }
 
-  setBaseURL(url) {
-    this.baseURL = url;
+  async getShowtimeById(id) {
+    return this.request(`/showtimes/${id}`);
   }
+
+  async createShowtime(showtimeData) {
+    return this.request('/showtimes', {
+      method: 'POST',
+      body: JSON.stringify(showtimeData),
+    });
+  }
+
+  async updateShowtime(id, showtimeData) {
+    return this.request(`/showtimes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(showtimeData),
+    });
+  }
+
+  async deleteShowtime(id) {
+    return this.request(`/showtimes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getShowtimesByMovie(movieId) {
+    return this.request(`/showtimes/movie/${movieId}`);
+  }
+
+  async getShowtimesByRoom(roomId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/showtimes/room/${roomId}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getShowtimesByDate(date) {
+    return this.request(`/showtimes/date/${date}`);
+  }
+
+  async generateShowtimes(generateData) {
+    return this.request('/showtimes/generate', {
+      method: 'POST',
+      body: JSON.stringify(generateData),
+    });
+  }
+
+  async deleteShowtimesByDateRange(deleteData) {
+    return this.request('/showtimes/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify(deleteData),
+    });
+  }
+
+  // ============ FOOD MANAGEMENT ============
+  async getFoods() {
+    return this.request('/foods');
+  }
+
+  async getAllFoods() {
+    return this.request('/foods');
+  }
+
+  async getFoodById(id) {
+    return this.request(`/foods/${id}`);
+  }
+
+  async createFood(foodData) {
+    return this.request('/foods', {
+      method: 'POST',
+      body: JSON.stringify(foodData),
+    });
+  }
+
+  async updateFood(id, foodData) {
+    return this.request(`/foods/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(foodData),
+    });
+  }
+
+  async deleteFood(id) {
+    return this.request(`/foods/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async uploadFoodImage(id, formData) {
+    return this.uploadFile(`/foods/${id}/image`, formData);
+  }
+
+  // ============ DISCOUNT MANAGEMENT ============
+  async getDiscounts() {
+    return this.request('/discounts');
+  }
+
+  async getDiscountById(id) {
+    return this.request(`/discounts/${id}`);
+  }
+
+  async verifyDiscount(code) {
+    return this.request(`/discounts/verify/${code}`);
+  }
+
+  async createDiscount(discountData) {
+    return this.request('/discounts', {
+      method: 'POST',
+      body: JSON.stringify(discountData),
+    });
+  }
+
+  async updateDiscount(id, discountData) {
+    return this.request(`/discounts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(discountData),
+    });
+  }
+
+  async deleteDiscount(id) {
+    return this.request(`/discounts/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // ============ TICKET MANAGEMENT ============
+  async getTickets(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets${queryString ? `?${queryString}` : ''}`);
+  }
+
+  // ✅ NEW: Temporary public route for testing
+  async getAllTicketsPublic(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets/test-all${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getTicketById(id) {
+    return this.request(`/tickets/${id}`);
+  }
+
+  async getTicketByOrderId(orderId) {
+    return this.request(`/tickets/order/${orderId}`);
+  }
+
+  async getMyTickets() {
+    return this.request('/tickets/mytickets');
+  }
+
+  async getTicketsByEmail(email) {
+    return this.request(`/tickets/email/${email}`);
+  }
+
+  async getTicketsByUser(userId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets/user/${userId}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async createTicket(ticketData) {
+    return this.request('/tickets', {
+      method: 'POST',
+      body: JSON.stringify(ticketData),
+    });
+  }
+
+  async updateTicket(id, ticketData) {
+    return this.request(`/tickets/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(ticketData),
+    });
+  }
+
+  async deleteTicket(id) {
+    return this.request(`/tickets/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async updatePaymentStatus(id, statusData) {
+    return this.request(`/tickets/${id}/payment`, {
+      method: 'PUT',
+      body: JSON.stringify(statusData),
+    });
+  }
+
+  async cancelTicket(ticketId, reason) {
+    return this.request(`/tickets/${ticketId}/cancel`, {
+      method: 'PUT',
+      body: JSON.stringify({ reason }),
+    });
+  }
+
+  async validateTicket(ticketId) {
+    return this.request(`/tickets/${ticketId}/validate`);
+  }
+
+  // Legacy methods for compatibility
+  async getAllTickets(params = {}) {
+    return this.getTickets(params);
+  }
+
+  async getTicketDetails(ticketId) {
+    return this.getTicketById(ticketId);
+  }
+
+  // ============ RELATIONSHIP METHODS ============
+  // Movie-Genre relationships
+  async getMoviesByGenre(genreId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/genres/${genreId}/movies${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async addGenreToMovie(movieId, genreId) {
+    return this.request(`/movies/${movieId}/genres`, {
+      method: 'POST',
+      body: JSON.stringify({ genreId }),
+    });
+  }
+
+  async removeGenreFromMovie(movieId, genreId) {
+    return this.request(`/movies/${movieId}/genres/${genreId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Movie-Actor relationships
+  async getMoviesByActor(actorId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/actors/${actorId}/movies${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async addActorToMovie(movieId, actorId) {
+    return this.request(`/movies/${movieId}/actors`, {
+      method: 'POST',
+      body: JSON.stringify({ actorId }),
+    });
+  }
+
+  async removeActorFromMovie(movieId, actorId) {
+    return this.request(`/movies/${movieId}/actors/${actorId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Movie-Director relationships
+  async getMoviesByDirector(directorId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/directors/${directorId}/movies${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async addDirectorToMovie(movieId, directorId) {
+    return this.request(`/movies/${movieId}/directors`, {
+      method: 'POST',
+      body: JSON.stringify({ directorId }),
+    });
+  }
+
+  async removeDirectorFromMovie(movieId, directorId) {
+    return this.request(`/movies/${movieId}/directors/${directorId}`, {
+      method: 'DELETE',
+    });
+  }
+  // ============ TICKET MANAGEMENT ============
+// ... (các method cũ giữ nguyên)
+
+// ✅ THÊM 2 METHOD NÀY VÀO CUỐI PHẦN TICKET MANAGEMENT
+async getTicketsByShowtime(showtimeId) {
+  return this.request(`/tickets/showtime/${showtimeId}`);
 }
 
-const apiService = new ApiService();
-export default apiService;
+async getSeatBookingStatus(showtimeId) {
+  return this.request(`/tickets/seat-status/${showtimeId}`);
+}
+}
+
+export default new ApiService();
