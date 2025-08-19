@@ -15,6 +15,9 @@ import CreateDirector from "./Pages/CreateDirector";
 import CreateEmployee from "./Pages/CreateEmployee";
 import SeatList from "./Pages/SeatList";
 import TicketDetail from "./Pages/TicketDetail";
+import EditMovie from "./Pages/EditMovie";
+import GenreList from "./Pages/GenreList";
+import CreateGenre from "./Pages/CreateGenre";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -93,6 +96,15 @@ function App() {
       />
 
       <Route
+        path="/admin/movie/edit/:id"
+        element={
+          <ProtectedRoute>
+            <EditMovie />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
         path="/admin/addmovie"
         element={
           <ProtectedRoute>
@@ -116,6 +128,24 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateDirector />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/genres/create"
+        element={
+          <ProtectedRoute>
+            <CreateGenre />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/genres"
+        element={
+          <ProtectedRoute>
+            <GenreList />
           </ProtectedRoute>
         }
       />

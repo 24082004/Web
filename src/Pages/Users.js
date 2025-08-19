@@ -13,7 +13,6 @@ import {
   message,
   Spin,
   Modal,
-  Descriptions,
   Empty,
 } from 'antd';
 import {
@@ -25,7 +24,7 @@ import {
   CalendarOutlined,
   DollarOutlined,
 } from '@ant-design/icons';
-import ApiService from '../services/ApiService'; // Adjust the import path as necessary
+import ApiService from '../config/api';
 import moment from 'moment';
 
 const { Title } = Typography;
