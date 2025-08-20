@@ -15,6 +15,7 @@ import CreateDirector from "./Pages/CreateDirector";
 import CreateEmployee from "./Pages/CreateEmployee";
 import SeatManagement from "./Pages/SeatManagement";
 import TicketDetail from "./Pages/TicketDetail";
+import FoodList from "./Pages/FoodList";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -144,6 +145,15 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateEmployee />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/foods"
+        element={
+          <ProtectedRoute>
+            <FoodList />
           </ProtectedRoute>
         }
       />
