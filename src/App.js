@@ -20,6 +20,9 @@ import GenreList from "./Pages/GenreList";
 import CreateGenre from "./Pages/CreateGenre";
 import ActorList from "./Pages/ActorList";
 import CreateActor from "./Pages/CreateActor";
+import CinemaList from "./Pages/CinemaList";
+import RoomList from "./Pages/RoomList";
+import Tickets from "./Pages/Tickets";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -199,15 +202,23 @@ function App() {
         }
       />
 
-      {/* Other Routes
       <Route
-        path="/admin/seat-management"
+        path="/admin/cinemas"
         element={
           <ProtectedRoute>
-            <SeatManagement />
+            <CinemaList />
           </ProtectedRoute>
         }
-      /> */}
+      />
+
+      <Route
+        path="/admin/rooms"
+        element={
+          <ProtectedRoute>
+            <RoomList />
+          </ProtectedRoute>
+        }
+      />
 
       <Route
         path="/admin/seats"
@@ -218,12 +229,11 @@ function App() {
         }
       />
 
-
       <Route
-        path="/admin/bookings/:id"
+        path="/admin/tickets"
         element={
           <ProtectedRoute>
-            <TicketDetail />
+            <Tickets />
           </ProtectedRoute>
         }
       />
