@@ -14,7 +14,6 @@ import AuthService from "./services/authService";
 import CreateDirector from "./Pages/CreateDirector";
 import CreateEmployee from "./Pages/CreateEmployee";
 import SeatList from "./Pages/SeatList";
-import TicketDetail from "./Pages/TicketDetail";
 import EditMovie from "./Pages/EditMovie";
 import GenreList from "./Pages/GenreList";
 import CreateGenre from "./Pages/CreateGenre";
@@ -23,6 +22,9 @@ import CreateActor from "./Pages/CreateActor";
 import CinemaList from "./Pages/CinemaList";
 import RoomList from "./Pages/RoomList";
 import Tickets from "./Pages/Tickets";
+import DiscountList from "./Pages/DiscountList";
+import CreateDiscount from "./Pages/CreateDiscount";
+import EditDiscount from "./Pages/EditDiscount";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -170,6 +172,34 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateActor />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Discount Routes */}
+      <Route
+        path="/admin/discounts"
+        element={
+          <ProtectedRoute>
+            <DiscountList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/discount/add"
+        element={
+          <ProtectedRoute>
+            <CreateDiscount />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/discount/edit/:id"
+        element={
+          <ProtectedRoute>
+            <EditDiscount />
           </ProtectedRoute>
         }
       />
