@@ -20,6 +20,9 @@ import GenreList from "./Pages/GenreList";
 import CreateGenre from "./Pages/CreateGenre";
 import ActorList from "./Pages/ActorList";
 import CreateActor from "./Pages/CreateActor";
+import DiscountList from "./Pages/DiscountList";
+import CreateDiscount from "./Pages/CreateDiscount";
+import EditDiscount from "./Pages/EditDiscount";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -167,6 +170,34 @@ function App() {
         element={
           <ProtectedRoute>
             <CreateActor />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Discount Routes */}
+      <Route
+        path="/admin/discounts"
+        element={
+          <ProtectedRoute>
+            <DiscountList />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/discount/add"
+        element={
+          <ProtectedRoute>
+            <CreateDiscount />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/discount/edit/:id"
+        element={
+          <ProtectedRoute>
+            <EditDiscount />
           </ProtectedRoute>
         }
       />

@@ -40,6 +40,7 @@ class ApiService {
       const response = await fetch(url, config);
 
     if (!response.ok) {
+      const errorText = await response.text();
       if (response.status === 401) {
         throw new Error('Email hoặc mật khẩu không đúng, vui lòng thử lại.');
       } else if (response.status === 403) {
@@ -47,7 +48,7 @@ class ApiService {
       } else if (response.status === 404) {
         throw new Error('Không tìm thấy tài nguyên.');
       } else {
-        throw new Error(`Lỗi máy chủ: ${response.status}`);
+        throw new Error(`Lỗi máy chủ: ${response.status} - ${errorText}`);
       }
     }
 
@@ -413,7 +414,6 @@ class ApiService {
       method: "DELETE",
     });
   }
-
 
   // ================= Utility =================
   getBaseURL() {
