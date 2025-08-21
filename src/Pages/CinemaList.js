@@ -1,6 +1,7 @@
+// src/Pages/CinemaList.js
 import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Typography, message, Input, Modal, Switch, Form } from "antd";
-import { ReloadOutlined, EditOutlined, EnvironmentOutlined } from "@ant-design/icons";
+import { ReloadOutlined, EditOutlined, EnvironmentOutlined, PlusOutlined } from "@ant-design/icons";
 import ApiService from "../services/ApiService";
 
 const { Link: AntLink } = Typography;
@@ -8,34 +9,28 @@ const { Search } = Input;
 
 const CinemaList = () => {
   const [cinemas, setCinemas] = useState([]);
+  const [filteredCinemas, setFilteredCinemas] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusLoading, setStatusLoading] = useState({});
   const [searchText, setSearchText] = useState('');
-  const [filteredCinemas, setFilteredCinemas] = useState([]);
 
-  // Modal edit
   const [isModalVisible, setIsModalVisible] = useState(false);
   const [editingCinema, setEditingCinema] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
   const [form] = Form.useForm();
 
+  // --- Fetch danh sách rạp ---
   const fetchCinemas = async () => {
     setLoading(true);
     try {
       const response = await ApiService.getCinemas();
       if (response.success) {
-        const cinemasWithStatus = response.data.map(c => ({
-          ...c,
-          status: c.status || 'active'
-        }));
+        const cinemasWithStatus = response.data.map(c => ({ ...c, status: c.status || 'active' }));
         setCinemas(cinemasWithStatus);
         setFilteredCinemas(cinemasWithStatus);
-        message.success(`Đã tải ${cinemasWithStatus.length} rạp phim`);
-      } else {
-        message.error(response.message || 'Lỗi khi tải danh sách rạp phim');
       }
-    } catch (error) {
-      console.error(error);
-      message.error('Lỗi kết nối API: ' + error.message);
+    } catch (err) {
+      message.error('Lỗi kết nối API: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -43,26 +38,37 @@ const CinemaList = () => {
 
   useEffect(() => { fetchCinemas(); }, []);
 
+  // --- Search/filter admin ---
   const handleSearch = (value) => {
     setSearchText(value);
     if (!value) setFilteredCinemas(cinemas);
-    else setFilteredCinemas(cinemas.filter(c => 
-      c.name.toLowerCase().includes(value.toLowerCase()) || 
+    else setFilteredCinemas(cinemas.filter(c =>
+      c.name.toLowerCase().includes(value.toLowerCase()) ||
       c.address.toLowerCase().includes(value.toLowerCase())
     ));
   };
 
-  const handleStatusChange = async (id, checked) => {
-    const newStatus = checked ? 'active' : 'inactive';
+  // --- Thay đổi trạng thái ---
+  const handleStatusChange = async (id, newStatus) => {
+    const cinema = cinemas.find(c => c._id === id);
+    if (!cinema) return;
+
+    const updatedCinema = { ...cinema, status: newStatus };
+
     setStatusLoading(prev => ({ ...prev, [id]: true }));
+
     try {
-      const response = { success: true }; // tạm thời
+      const response = await ApiService.updateCinema(id, updatedCinema);
+
       if (response.success) {
-        message.success(`Đã ${checked ? 'kích hoạt' : 'vô hiệu hóa'} rạp phim`);
-        const update = cinemas.map(c => c._id === id ? { ...c, status: newStatus } : c);
-        setCinemas(update);
-        setFilteredCinemas(update);
+        message.success(`Đã ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} rạp phim`);
+        const updatedList = cinemas.map(c => c._id === id ? { ...c, status: newStatus } : c);
+        setCinemas(updatedList);
+        setFilteredCinemas(updatedList);
+      } else {
+        message.error(response.message || 'Cập nhật trạng thái thất bại');
       }
+
     } catch (err) {
       message.error('Lỗi khi cập nhật trạng thái');
     } finally {
@@ -70,8 +76,24 @@ const CinemaList = () => {
     }
   };
 
+  // --- Kiểm tra trùng ---
+  const checkDuplicate = (field, value) => {
+    const filtered = cinemas.filter(c => !isAdding && editingCinema ? c._id !== editingCinema._id : true);
+    return filtered.some(c => c[field]?.trim().toLowerCase() === value.trim().toLowerCase());
+  };
+
+  // --- Modal thêm mới ---
+  const showAddModal = () => {
+    setIsAdding(true);
+    setEditingCinema(null);
+    form.resetFields();
+    form.setFieldsValue({ status: true }); // mặc định hoạt động
+    setIsModalVisible(true);
+  };
+
   // --- Modal chỉnh sửa ---
   const showEditModal = (cinema) => {
+    setIsAdding(false);
     setEditingCinema(cinema);
     form.setFieldsValue({
       name: cinema.name,
@@ -85,16 +107,26 @@ const CinemaList = () => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      const updateData = {
+      const cinemaData = {
         ...values,
         status: values.status ? 'active' : 'inactive'
       };
-      const res = await ApiService.updateCinema(editingCinema._id, updateData);
+
+      let res;
+      if (isAdding) {
+        res = await ApiService.createCinema(cinemaData);
+      } else {
+        res = await ApiService.updateCinema(editingCinema._id, cinemaData);
+      }
+
       if (res.success) {
-        message.success('Cập nhật rạp thành công');
+        message.success(isAdding ? 'Thêm rạp thành công' : 'Cập nhật rạp thành công');
         setIsModalVisible(false);
+        setIsAdding(false);
         fetchCinemas();
-      } else message.error(res.message || 'Cập nhật thất bại');
+      } else {
+        message.error(res.message || 'Thao tác thất bại');
+      }
     } catch (err) {
       console.error(err);
     }
@@ -103,8 +135,10 @@ const CinemaList = () => {
   const handleCancel = () => {
     setIsModalVisible(false);
     setEditingCinema(null);
+    setIsAdding(false);
   };
 
+  // --- Columns ---
   const columns = [
     {
       title: 'Tên rạp',
@@ -142,8 +176,8 @@ const CinemaList = () => {
       render: (status, record) => (
         <Switch
           checked={status === 'active'}
-          loading={statusLoading[record._id]}
-          onChange={(checked) => handleStatusChange(record._id, checked)}
+          loading={statusLoading[record._id] || false}
+          onChange={(checked) => handleStatusChange(record._id, checked ? 'active' : 'inactive')}
           checkedChildren="Hoạt động"
           unCheckedChildren="Tạm ngưng"
         />
@@ -174,6 +208,9 @@ const CinemaList = () => {
           <Button type="primary" icon={<ReloadOutlined />} onClick={fetchCinemas} loading={loading}>
             Refresh
           </Button>
+          <Button type="primary" icon={<PlusOutlined />} onClick={showAddModal}>
+            Thêm rạp
+          </Button>
         </Space>
       </div>
 
@@ -202,7 +239,7 @@ const CinemaList = () => {
       />
 
       <Modal
-        title="Chỉnh sửa rạp phim"
+        title={isAdding ? "Thêm rạp phim" : "Chỉnh sửa rạp phim"}
         open={isModalVisible}
         onOk={handleOk}
         onCancel={handleCancel}
@@ -210,15 +247,52 @@ const CinemaList = () => {
         cancelText="Hủy"
       >
         <Form form={form} layout="vertical">
-          <Form.Item name="name" label="Tên rạp" rules={[{ required: true, message: 'Vui lòng nhập tên rạp' }]}>
+          <Form.Item
+            name="name"
+            label="Tên rạp"
+            rules={[
+              { required: true, message: 'Vui lòng nhập tên rạp' },
+              { validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (checkDuplicate('name', value)) return Promise.reject(new Error('Tên rạp đã tồn tại'));
+                  return Promise.resolve();
+              }}
+            ]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="address" label="Địa chỉ" rules={[{ required: true, message: 'Vui lòng nhập địa chỉ' }]}>
+
+          <Form.Item
+            name="address"
+            label="Địa chỉ"
+            rules={[
+              { required: true, message: 'Vui lòng nhập địa chỉ' },
+              { validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (checkDuplicate('address', value)) return Promise.reject(new Error('Địa chỉ đã tồn tại'));
+                  return Promise.resolve();
+              }}
+            ]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name="hotline" label="Hotline">
+
+          <Form.Item
+            name="hotline"
+            label="Hotline"
+            rules={[
+              { required: true, message: 'Vui lòng nhập số hotline' },
+              { validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (!/^\d{10,11}$/.test(value)) return Promise.reject(new Error('Hotline phải từ 10-11 số'));
+                  if (checkDuplicate('hotline', value)) return Promise.reject(new Error('Hotline đã tồn tại'));
+                  return Promise.resolve();
+              }}
+            ]}
+          >
             <Input />
           </Form.Item>
+
           <Form.Item name="status" label="Trạng thái" valuePropName="checked">
             <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm ngưng" />
           </Form.Item>
@@ -226,6 +300,15 @@ const CinemaList = () => {
       </Modal>
     </div>
   );
+};
+
+// --- API cho app người dùng: chỉ hiển thị rạp active ---
+export const fetchCinemasForApp = async () => {
+  const res = await ApiService.getCinemas();
+  if (res.success) {
+    return res.data.filter(c => c.status === 'active');
+  }
+  return [];
 };
 
 export default CinemaList;

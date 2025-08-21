@@ -296,6 +296,7 @@ class ApiService {
     });
   }
 
+
   // ================= Discount methods =================
   async getDiscounts() {
     return this.request("/discounts");
