@@ -26,6 +26,7 @@ import DiscountList from "./Pages/DiscountList";
 import CreateDiscount from "./Pages/CreateDiscount";
 import EditDiscount from "./Pages/EditDiscount";
 import FoodList from "./Pages/FoodList";
+import ShowtimeList from "./Pages/ShowtimeList";
 
 // Protected Route Component
 const ProtectedRoute = ({ children }) => {
@@ -275,6 +276,15 @@ function App() {
         element={
           <ProtectedRoute>
             <Tickets />
+          </ProtectedRoute>
+        }
+      />
+
+      <Route
+        path="/admin/showtimes"
+        element={
+          <ProtectedRoute>
+            <ShowtimeList />
           </ProtectedRoute>
         }
       />

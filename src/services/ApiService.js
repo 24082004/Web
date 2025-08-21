@@ -415,6 +415,68 @@ class ApiService {
     });
   }
 
+  // ============ SHOWTIME MANAGEMENT ============
+  async getShowtimes(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/showtimes${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getShowtimeById(id) {
+    return this.request(`/showtimes/${id}`);
+  }
+
+  async createShowtime(showtimeData) {
+    return this.request('/showtimes', {
+      method: 'POST',
+      body: JSON.stringify(showtimeData),
+    });
+  }
+
+  async updateShowtime(id, showtimeData) {
+    return this.request(`/showtimes/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(showtimeData),
+    });
+  }
+
+  async deleteShowtime(id) {
+    return this.request(`/showtimes/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async getShowtimesByMovie(movieId) {
+    return this.request(`/showtimes/movie/${movieId}`);
+  }
+
+  async getShowtimesByRoom(roomId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/showtimes/room/${roomId}${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getShowtimesByDate(date) {
+    return this.request(`/showtimes/date/${date}`);
+  }
+
+  async generateShowtimes(generateData) {
+    return this.request('/showtimes/generate', {
+      method: 'POST',
+      body: JSON.stringify(generateData),
+    });
+  }
+
+  async deleteShowtimesByDateRange(deleteData) {
+    return this.request('/showtimes/bulk', {
+      method: 'DELETE',
+      body: JSON.stringify(deleteData),
+    });
+  }
+
+  async getNowShowingMovies() {
+  return this.request("/movies?status=now_showing");
+  }
+
+
   // ================= Utility =================
   getBaseURL() {
     return this.baseURL;

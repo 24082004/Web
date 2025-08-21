@@ -53,8 +53,8 @@ const MainLayout = ({ children }) => {
     if (pathname.startsWith("/admin/discounts")) return "7";
     if (pathname.startsWith("/admin/rooms")) return "8";
     if (pathname.startsWith("/admin/seats")) return "9";
-    // if (pathname.startsWith("/admin/bookings")) return "10";
     if (pathname.startsWith("/admin/tickets")) return "10";
+    if (pathname.startsWith("/admin/showtimes")) return "11";
 
     return "";
   };
@@ -188,6 +188,10 @@ const MainLayout = ({ children }) => {
 
           <Menu.Item key="10" icon={<UnorderedListOutlined />}>
             <Link to="/admin/tickets">Danh sách vé</Link>
+          </Menu.Item>
+
+          <Menu.Item key="11" icon={<UnorderedListOutlined />}>
+            <Link to="/admin/showtimes">Danh suất chiếu</Link>
           </Menu.Item>
 
         </Menu>
