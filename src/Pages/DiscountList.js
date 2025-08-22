@@ -86,21 +86,34 @@ const DiscountList = () => {
     }
   };
 
-  // Search functionality
+  // Search functionality - unified search with safe checks
   const handleSearch = (value) => {
     setSearchText(value);
     if (!value) {
       setFilteredDiscounts(discounts);
     } else {
       const filtered = discounts.filter(discount => {
+        // Safe string checks with fallbacks
+        const name = discount.name || '';
+        const code = discount.code || '';
+        const cinemaName = discount.cinema?.name || '';
+        
+        const searchLower = value.toLowerCase();
+        
         return (
-          discount.name.toLowerCase().includes(value.toLowerCase()) ||
-          discount.code.toLowerCase().includes(value.toLowerCase()) ||
-          (discount.cinema && discount.cinema.name.toLowerCase().includes(value.toLowerCase()))
+          name.toLowerCase().includes(searchLower) ||
+          code.toLowerCase().includes(searchLower) ||
+          cinemaName.toLowerCase().includes(searchLower)
         );
       });
       setFilteredDiscounts(filtered);
     }
+  };
+
+  // Reset search to show all discounts
+  const handleResetSearch = () => {
+    setSearchText('');
+    setFilteredDiscounts(discounts);
   };
 
   // Get discount status
@@ -140,10 +153,32 @@ const DiscountList = () => {
   const handleStatusChange = async (id, checked) => {
     const newStatus = checked ? 'active' : 'inactive';
     
+    console.log('Toggle status for discount:', id, 'to:', newStatus);
     setStatusLoading(prev => ({ ...prev, [id]: true }));
     
     try {
-      const response = await ApiService.updateDiscount(id, { status: newStatus });
+      // Find the current discount to get full data
+      const currentDiscount = discounts.find(d => d._id === id);
+      if (!currentDiscount) {
+        throw new Error('Không tìm thấy mã khuyến mãi');
+      }
+
+      // Send full discount data with updated status (as backend expects)
+      const updateData = {
+        name: currentDiscount.name,
+        code: currentDiscount.code,
+        type: currentDiscount.type,
+        percent: currentDiscount.percent,
+        dayStart: currentDiscount.dayStart,
+        dayEnd: currentDiscount.dayEnd,
+        status: newStatus,
+        cinema: currentDiscount.cinema || null
+      };
+
+      console.log('Sending update data:', updateData);
+      const response = await ApiService.updateDiscount(id, updateData);
+      
+      console.log('Update response:', response);
       
       if (response.success) {
         message.success(`Đã ${checked ? 'kích hoạt' : 'vô hiệu hóa'} mã khuyến mãi`);
@@ -284,6 +319,10 @@ const DiscountList = () => {
             color = 'purple';
             text = 'Combo';
             break;
+          default:
+            color = 'default';
+            text = 'Không xác định';
+            break;
         }
         
         return <Tag color={color}>{text}</Tag>;
@@ -409,16 +448,23 @@ const DiscountList = () => {
       </div>
 
       {/* Search */}
-      <div style={{ marginBottom: 16 }}>
+      <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
         <Search
-          placeholder="Tìm kiếm theo tên, mã code hoặc rạp áp dụng..." 
+          placeholder="Tìm kiếm theo tên khuyến mãi, mã code hoặc rạp áp dụng..." 
           allowClear 
-          style={{ maxWidth: 400 }} 
+          style={{ maxWidth: 500 }} 
           value={searchText}
           onChange={(e) => handleSearch(e.target.value)}
           onSearch={handleSearch}
+          prefix={<SearchOutlined />}
         />
-        <span style={{ marginLeft: 16, color: '#666' }}>
+        <Button 
+          onClick={handleResetSearch}
+          disabled={!searchText && filteredDiscounts.length === discounts.length}
+        >
+          Hiển thị tất cả
+        </Button>
+        <span style={{ color: '#666' }}>
           Hiển thị {filteredDiscounts.length} / {discounts.length} khuyến mãi
         </span>
       </div>

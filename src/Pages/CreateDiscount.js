@@ -37,17 +37,22 @@ const CreateDiscount = () => {
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
+      console.log('Form values:', values);
+      
       const discountData = {
         name: values.name.trim(),
         code: values.code.trim().toUpperCase(),
         type: values.discountType || 'ticket',
-        percent: parseInt(values.discountValue),
-        dayStart: values.dateRange[0].toISOString(),
-        dayEnd: values.dateRange[1].toISOString(),
+        percent: parseInt(values.discountValue) || 0,
+        dayStart: values.dateRange[0].format('YYYY-MM-DD'),
+        dayEnd: values.dateRange[1].format('YYYY-MM-DD'),
         status: values.status ? 'active' : 'inactive',
+        description: values.description?.trim() || '',
       };
 
+      console.log('Sending discount data:', discountData);
       const response = await ApiService.createDiscount(discountData);
+      console.log('Create response:', response);
       
       if (response.success) {
         message.success('Tạo khuyến mãi thành công!');

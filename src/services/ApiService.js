@@ -299,7 +299,7 @@ class ApiService {
 
   // ================= Discount methods =================
   async getDiscounts() {
-    return this.request("/discounts");
+    return this.request("/discounts/admin/all");
   }
 
   async getDiscountById(id) {
@@ -328,6 +328,18 @@ class ApiService {
     return this.request(`/discounts/${id}`, {
       method: "DELETE",
     });
+  }
+
+  async verifyDiscountByCode(code) {
+    try {
+      console.log('Verifying discount code:', code);
+      const response = await this.request(`/discounts/verify/${code}`);
+      console.log('Verify discount response:', response);
+      return response;
+    } catch (error) {
+      console.error('Error verifying discount code:', error);
+      throw error;
+    }
   }
 
   // ================= Room methods =================
