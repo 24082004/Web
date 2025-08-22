@@ -14,13 +14,16 @@ const EditMovie = () => {
   const [form] = Form.useForm();
   const [directorsList, setDirectorsList] = useState([]);
   const [actorsList, setActorsList] = useState([]);
+  const [genres, setGenres] = useState([]);
 
   const fetchPeople = useCallback(async () => {
     try {
       const resActors = await ApiService.request("/actors");
       const resDirectors = await ApiService.request("/directors");
+      const genRes = await ApiService.request("/genres");
       if (resActors.success) setActorsList(resActors.data || []);
       if (resDirectors.success) setDirectorsList(resDirectors.data || []);
+      if (genRes.success) setGenres(genRes.data.genres || []);
     } catch (err) {
       message.error("Lỗi tải danh sách đạo diễn / diễn viên");
     }
@@ -34,11 +37,9 @@ const EditMovie = () => {
         return;
       }
       const data = response.data;
+      //console.log("check data >>", data);
 
-      // Lấy mảng _id chính xác của diễn viên
-      const actorIds = (data.actors || []).map(a =>
-        a?._id || a?.actor?._id || a
-      );
+      
 
       form.setFieldsValue({
         name: data.name,
@@ -47,7 +48,8 @@ const EditMovie = () => {
         duration: data.duration,
         rate: data.rate,
         release_date: data.release_date ? dayjs(data.release_date) : null,
-        actors: actorIds,
+        actor: (data.actor || []).map(d => d._id || d),
+        genre: (data.genre || []).map(d => d._id || d),
         director: (data.director || []).map(d => d._id || d),
       });
     } catch (error) {
@@ -82,7 +84,7 @@ const EditMovie = () => {
 
       if (res.success) {
         message.success("Cập nhật phim thành công");
-        navigate("/admin/movielist");
+        navigate("/admin/movie/list");
       } else {
         message.error(res.message || "Cập nhật thất bại");
       }
@@ -160,7 +162,7 @@ const EditMovie = () => {
 
         {/* Diễn viên */}
         <Form.Item
-          name="actors"
+          name="actor"
           label="Diễn viên"
           rules={[{ required: true, message: "Vui lòng chọn ít nhất 1 diễn viên" }]}
         >
@@ -173,13 +175,25 @@ const EditMovie = () => {
           </Select>
         </Form.Item>
 
+        <Form.Item
+          name="genre"
+          label="Thể loại"
+          rules={[{ required: true, message: "Vui lòng chọn ít nhất 1 diễn viên" }]}
+        >
+          <Select mode="multiple" placeholder="Chọn thể loại">
+              {genres.map((g) => (
+                <Option key={g._id} value={g._id}>{g.name}</Option>
+              ))}
+          </Select>
+        </Form.Item>
+
         <Form.Item>
           <Button type="primary" htmlType="submit" loading={loading}>
             Lưu thay đổi
           </Button>
           <Button
             style={{ marginLeft: 8 }}
-            onClick={() => navigate("/admin/movielist")}
+            onClick={() => navigate("/admin/movie/list")}
           >
             Hủy
           </Button>

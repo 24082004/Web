@@ -1,161 +1,169 @@
-import React from "react";
-import { Form, Input, Button, Select, DatePicker, Upload, message } from "antd";
-import { UploadOutlined } from "@ant-design/icons";
-import apiService from "../services/ApiService";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { Form, Input, Button, Select, DatePicker, InputNumber, message, Card } from "antd";
+import axios from "axios";
 
 const { TextArea } = Input;
 const { Option } = Select;
 
 const AddMovie = () => {
-  const [form] = Form.useForm();
 
+  const navigate = useNavigate();
+
+  const [loading, setLoading] = useState(false);
+  const [directors, setDirectors] = useState([]);
+  const [actors, setActors] = useState([]);
+  const [genres, setGenres] = useState([]);
+
+  // 🔹 Lấy danh sách director / actor / genre từ API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const dirRes = await axios.get("https://my-backend-api-movie.onrender.com/api/directors");
+        const actRes = await axios.get("https://my-backend-api-movie.onrender.com/api/actors");
+        const genRes = await axios.get("https://my-backend-api-movie.onrender.com/api/genres");
+        
+        setDirectors(dirRes.data.data);
+        //console.log("check director >> ", directors);
+        setActors(actRes.data.data);
+        setGenres(genRes.data.data.genres);
+      } catch (err) {
+        console.error(err);
+        message.error("Không thể tải dữ liệu đạo diễn / diễn viên / thể loại");
+      }
+    };
+    fetchData();
+  }, []);
+
+  // 🔹 Gửi request thêm phim
   const onFinish = async (values) => {
+    setLoading(true);
     try {
-      const formData = new FormData();
+      const token = localStorage.getItem("adminToken");
+      const res = await axios.post("https://my-backend-api-movie.onrender.com/api/movies", values, {
+        headers: { "Content-Type": "application/json",
+                   "Authorization": `Bearer ${token}`
+         }
+      });
+      // log dữ liệu backend trả về
+        console.log("Response:", res.data);
 
-      // Thêm các trường giống MovieList
-      formData.append("name", values.name);
-      formData.append("durationFormatted", values.durationFormatted || "");
-      formData.append("ageLimit", values.ageLimit || "");
-      formData.append("rating", values.rating || "");
-      formData.append("subtitle", values.subtitle || "");
-      formData.append("description", values.description || "");
-      formData.append("format", values.format || "");
-      formData.append(
-        "releaseDate",
-        values.releaseDate ? values.releaseDate.format("YYYY-MM-DD") : ""
-      );
+        message.success("Thêm phim mới thành công!");
 
-      // Các trường mảng
-      if (values.languages) values.languages.forEach(lang => formData.append("languages[]", lang));
-      if (values.genres) values.genres.forEach(genre => formData.append("genres[]", genre));
-      if (values.actors) values.actors.forEach(actor => formData.append("actors[]", actor));
-      if (values.directors) values.directors.forEach(dir => formData.append("directors[]", dir));
-
-      // Upload hình ảnh
-      if (values.image && values.image.fileList.length > 0) {
-        formData.append("image", values.image.fileList[0].originFileObj);
-      }
-
-      // Upload trailer
-      if (values.trailer && values.trailer.fileList.length > 0) {
-        formData.append("trailer", values.trailer.fileList[0].originFileObj);
-      }
-
-      const res = await apiService.createMovie(formData);
-      if (res.success) {
-        message.success("Thêm phim thành công!");
-        form.resetFields();
-      } else {
-        message.error(res.message || "Thêm phim thất bại");
-      }
-    } catch (err) {
-      message.error("Lỗi khi thêm phim: " + err.message);
+        // điều hướng về màn hình danh sách phim
+        navigate("/admin/movie/list");
+    } catch (error) {
+      console.error(error);
+      message.error("Có lỗi xảy ra khi thêm phim!");
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h2 style={{ textAlign: "center", marginBottom: 24 }}>Thêm Phim Mới</h2>
-      <Form layout="vertical" form={form} onFinish={onFinish} style={{ maxWidth: 1000, margin: "0 auto" }}>
-        {/* Tên phim + Thời lượng */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Tên phim" name="name" style={{ flex: 1 }} rules={[{ required: true, message: "Vui lòng nhập tên phim!" }]}>
-            <Input />
-          </Form.Item>
-          <Form.Item label="Thời lượng" name="durationFormatted" style={{ flex: 1 }}>
-            <Input />
-          </Form.Item>
-        </div>
-
-        {/* Độ tuổi + Đánh giá */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Độ tuổi" name="ageLimit" style={{ flex: 1 }}>
-            <Input />
-          </Form.Item>
-          <Form.Item label="Đánh giá" name="rating" style={{ flex: 1 }}>
-            <Input />
-          </Form.Item>
-        </div>
-
-        {/* Ngôn ngữ + Phụ đề */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Ngôn ngữ" name="languages" style={{ flex: 1 }}>
-            <Select mode="multiple" placeholder="Chọn ngôn ngữ" allowClear>
-              <Option value="Vietnamese">Tiếng Việt</Option>
-              <Option value="English">Tiếng Anh</Option>
-              <Option value="Korean">Tiếng Hàn</Option>
-              <Option value="Japanese">Tiếng Nhật</Option>
-              <Option value="Chinese">Tiếng Trung</Option>
-              <Option value="French">Tiếng Pháp</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="Phụ đề" name="subtitle" style={{ flex: 1 }}>
-            <Input defaultValue="Vietnamese" />
-          </Form.Item>
-        </div>
-
-        {/* Cốt truyện */}
-        <Form.Item label="Cốt truyện" name="description">
-          <TextArea rows={3} />
+    <Card title="Thêm Phim Mới" bordered={false} style={{ maxWidth: 800, margin: "0 auto" }}>
+      <Form layout="vertical" onFinish={onFinish}>
+        {/* 🟢 Bắt buộc */}
+        <Form.Item
+          name="name"
+          label="Tên phim"
+          rules={[{ required: true, message: "Vui lòng nhập tên phim" }]}
+        >
+          <Input maxLength={200} placeholder="Nhập tên phim" />
         </Form.Item>
 
-        {/* Thể loại + Định dạng */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Thể loại" name="genres" style={{ flex: 1 }}>
-            <Select mode="multiple" placeholder="Chọn thể loại" allowClear>
-              <Option value="Hành Động">Hành Động</Option>
-              <Option value="Kinh Dị">Kinh Dị</Option>
-              <Option value="Anime">Anime</Option>
-              <Option value="Hoạt Hình">Hoạt Hình</Option>
-              <Option value="Tình Cảm">Tình Cảm</Option>
-            </Select>
-          </Form.Item>
-          <Form.Item label="Định dạng phim" name="format" style={{ flex: 1 }}>
-            <Input />
-          </Form.Item>
-        </div>
-
-        {/* Diễn viên + Đạo diễn */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Diễn viên" name="actors" style={{ flex: 1 }}>
-            <Select mode="multiple" placeholder="Chọn diễn viên" allowClear />
-          </Form.Item>
-          <Form.Item label="Đạo diễn" name="directors" style={{ flex: 1 }}>
-            <Select mode="multiple" placeholder="Chọn đạo diễn" allowClear />
-          </Form.Item>
-        </div>
-
-        {/* Ngày phát hành */}
-        <Form.Item label="Ngày phát hành" name="releaseDate">
-          <DatePicker format="DD/MM/YYYY" style={{ width: "100%" }} />
+        <Form.Item
+          name="duration"
+          label="Thời lượng (HH:MM:SS hoặc số phút)"
+          rules={[{ required: true, message: "Vui lòng nhập thời lượng" }]}
+        >
+          <Input placeholder="Ví dụ: 02:15:00 hoặc 135" />
         </Form.Item>
 
-        {/* Hình ảnh + Trailer */}
-        <div style={{ display: "flex", gap: 16 }}>
-          <Form.Item label="Hình ảnh" name="image" valuePropName="file">
-            <Upload beforeUpload={() => false} maxCount={1}>
-              <Button icon={<UploadOutlined />}>Chọn tệp</Button>
-            </Upload>
-          </Form.Item>
-          <Form.Item label="Trailer" name="trailer" valuePropName="file">
-            <Upload beforeUpload={() => false} maxCount={1}>
-              <Button icon={<UploadOutlined />}>Chọn tệp</Button>
-            </Upload>
-          </Form.Item>
-        </div>
+        <Form.Item
+          name="spoken_language"
+          label="Ngôn ngữ"
+          rules={[{ required: true, message: "Vui lòng nhập ngôn ngữ" }]}
+        >
+          <Input placeholder="Ví dụ: Tiếng Việt, English" />
+        </Form.Item>
 
-        {/* Nút submit + reset */}
-        <Form.Item style={{ textAlign: "center" }}>
-          <Button type="primary" htmlType="submit" style={{ marginRight: 8 }}>
+        {/* 🟡 Tùy chọn */}
+        <Form.Item name="image" label="Poster">
+          <Input placeholder="URL hình ảnh" />
+        </Form.Item>
+
+        <Form.Item name="subtitle" label="Phụ đề">
+          <Input placeholder="Ví dụ: English, Vietnamese" />
+        </Form.Item>
+
+        <Form.Item name="censorship" label="Phân loại">
+          <Select defaultValue="P">
+            <Option value="G">G</Option>
+            <Option value="PG">PG</Option>
+            <Option value="PG-13">PG-13</Option>
+            <Option value="R">R</Option>
+            <Option value="NC-17">NC-17</Option>
+            <Option value="P">P</Option>
+            <Option value="K">K</Option>
+            <Option value="T13">T13</Option>
+            <Option value="T16">T16</Option>
+            <Option value="T18">T18</Option>
+            <Option value="C">C</Option>
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="director" label="Đạo diễn">
+          <Select mode="multiple" placeholder="Chọn đạo diễn">
+            {directors.map((d) => (
+              <Option key={d._id} value={d._id}>{d.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="actor" label="Diễn viên">
+          <Select mode="multiple" placeholder="Chọn diễn viên">
+            {actors.map((a) => (
+              <Option key={a._id} value={a._id}>{a.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="genre" label="Thể loại">
+          <Select mode="multiple" placeholder="Chọn thể loại">
+            {genres.map((g) => (
+              <Option key={g._id} value={g._id}>{g.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="trailer" label="Trailer">
+          <Input placeholder="URL trailer" />
+        </Form.Item>
+
+        <Form.Item name="rate" label="Đánh giá">
+          <InputNumber min={0} max={10} step={0.1} style={{ width: "100%" }} />
+        </Form.Item>
+
+        <Form.Item name="storyLine" label="Nội dung phim">
+          <TextArea rows={4} maxLength={2000} />
+        </Form.Item>
+
+        <Form.Item name="release_date" label="Ngày phát hành">
+          <DatePicker style={{ width: "100%" }} />
+        </Form.Item>
+
+        <Form.Item name="release_at" label="Thời gian chiếu / Rạp">
+          <Input placeholder="Ví dụ: CGV, 20:00" />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" loading={loading}>
             Thêm phim
-          </Button>
-          <Button type="default" onClick={() => form.resetFields()}>
-            Quay lại
           </Button>
         </Form.Item>
       </Form>
-    </div>
+    </Card>
   );
 };
 
