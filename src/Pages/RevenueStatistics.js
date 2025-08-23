@@ -34,6 +34,7 @@ import {
   ReloadOutlined
 } from "@ant-design/icons";
 import dayjs from "dayjs";
+import apiService from "../config/api";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -43,69 +44,301 @@ const RevenueStatistics = () => {
   const [selectedMovie, setSelectedMovie] = useState("all");
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
   const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [movies, setMovies] = useState([]);
+  // const [cinemas, setCinemas] = useState([]); // Commented out since not used in current implementation
   const [stats, setStats] = useState({
-    totalRevenue: 1672000,
-    totalTickets: 13,
-    totalMovies: 2,
-    totalCinemas: 2
+    totalRevenue: 0,
+    totalTickets: 0,
+    totalMovies: 0,
+    totalCinemas: 0
   });
 
-  // Mock data - trong thực tế sẽ fetch từ API
-  const chartData = [
-    { name: "Rạp Mỹ Đình", total: 1336000, tickets: 9 },
-    { name: "Rạp Long Biên", total: 336000, tickets: 4 },
-  ];
+  // Data states
+  const [movieData, setMovieData] = useState([]);
+  const [cinemaData, setCinemaData] = useState([]);
+  const [chartData, setChartData] = useState([]);
+  const [pieData, setPieData] = useState([]);
+  const [trendData, setTrendData] = useState([]);
 
-  const movieData = [
-    {
-      key: "1",
-      movie: "Bí Kíp Luyện Rồng",
-      total: 1212000,
-      tickets: 9,
-      percentage: 72.5,
-    },
-    {
-      key: "2",
-      movie: "BỘ 5 SIÊU ĐẲNG CẤP",
-      total: 460000,
-      tickets: 4,
-      percentage: 27.5,
-    },
-  ];
+  // Fetch initial data
+  useEffect(() => {
+    fetchInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const cinemaData = [
-    {
-      key: "1",
-      cinema: "Rạp Mỹ Đình",
-      total: 1336000,
-      tickets: 9,
-      percentage: 79.9,
-    },
-    {
-      key: "2",
-      cinema: "Rạp Long Biên",
-      total: 336000,
-      tickets: 4,
-      percentage: 20.1,
-    },
-  ];
+  // Auto refresh data when filters change
+  useEffect(() => {
+    if (!initialLoading) {
+      fetchRevenueData();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dateRange, selectedMovie]);
 
-  // Pie chart data
-  const pieData = [
-    { name: "Bí Kíp Luyện Rồng", value: 1212000, color: "#1890ff" },
-    { name: "BỘ 5 SIÊU ĐẲNG CẤP", value: 460000, color: "#52c41a" },
-  ];
+  const fetchInitialData = async () => {
+    try {
+      setInitialLoading(true);
+      
+      // Lấy danh sách phim từ dữ liệu vé
+      try {
+        const ticketsResponse = await apiService.getAllTickets({
+          limit: 1000
+        });
+        
+        if (ticketsResponse.success && ticketsResponse.data) {
+          const tickets = ticketsResponse.data;
+          
+          // Tạo danh sách phim từ dữ liệu vé
+          const uniqueMovies = [];
+          const movieIds = new Set();
+          
+          tickets.forEach(ticket => {
+            if (ticket.movie) {
+              const movieId = ticket.movie._id || ticket.movie;
+              const movieName = ticket.movie.name || 
+                              ticket.movie.title || 
+                              ticket.movieName || 
+                              ticket.movieTitle;
+              
+              if (movieId && movieName && !movieIds.has(movieId)) {
+                movieIds.add(movieId);
+                uniqueMovies.push({
+                  _id: movieId,
+                  name: movieName,
+                  title: movieName
+                });
+              }
+            }
+          });
+          
+          setMovies(uniqueMovies);
+          
+          setStats(prev => ({
+            ...prev,
+            totalMovies: uniqueMovies.length
+          }));
+        }
+      } catch (error) {
+        console.warn('Error fetching tickets for movie list:', error);
+        setMovies([]);
+      }
 
-  // Line chart data for trend
-  const trendData = [
-    { date: "01/01", revenue: 200000 },
-    { date: "02/01", revenue: 350000 },
-    { date: "03/01", revenue: 460000 },
-    { date: "04/01", revenue: 580000 },
-    { date: "05/01", revenue: 720000 },
-    { date: "06/01", revenue: 890000 },
-    { date: "07/01", revenue: 1672000 },
-  ];
+      // Set default cinema count
+      setStats(prev => ({
+        ...prev,
+        totalCinemas: 2 // Mock value since API endpoint not available
+      }));
+
+      // Fetch initial revenue data
+      await fetchRevenueData();
+      
+    } catch (error) {
+      console.error('Error fetching initial data:', error);
+      message.warning('Một số dữ liệu có thể không hiển thị được do lỗi kết nối');
+    } finally {
+      setInitialLoading(false);
+    }
+  };
+
+  const fetchRevenueData = async () => {
+    try {
+      setLoading(true);
+      
+      // Sử dụng API có sẵn từ màn hình danh sách vé
+      const ticketsResponse = await apiService.getAllTickets({
+        limit: 1000 // Lấy nhiều vé để thống kê
+      });
+      
+      if (ticketsResponse.success && ticketsResponse.data && ticketsResponse.data.length > 0) {
+        const tickets = ticketsResponse.data;
+        
+        // Lọc theo trạng thái đã hoàn thành và theo khoảng thời gian được chọn
+        const startDate = dateRange[0];
+        const endDate = dateRange[1];
+        
+        const filteredTickets = tickets.filter(ticket => {
+          // Lọc theo trạng thái
+          const statusMatch = ticket.status === 'completed' || 
+                             ticket.status === 'confirmed' || 
+                             ticket.status === 'active';
+          
+          // Lọc theo thời gian
+          const ticketDate = ticket.createdAt || 
+                            ticket.bookingTime || 
+                            ticket.date ||
+                            ticket.confirmedAt;
+          
+          let dateMatch = true;
+          if (ticketDate) {
+            const tDate = dayjs(ticketDate);
+            dateMatch = tDate.isAfter(startDate.subtract(1, 'day')) && 
+                       tDate.isBefore(endDate.add(1, 'day'));
+          }
+          
+          // Lọc theo phim (nếu có chọn phim cụ thể)
+          let movieMatch = true;
+          if (selectedMovie !== 'all') {
+            const movieId = ticket.movie?._id || ticket.movie;
+            movieMatch = movieId === selectedMovie;
+          }
+          
+          return statusMatch && dateMatch && movieMatch;
+        });
+        
+        // Tính toán thống kê
+        let totalRevenue = 0;
+        const movieStats = {};
+        const cinemaStats = {};
+        const dailyStats = {};
+        
+        filteredTickets.forEach(ticket => {
+          // Lấy số tiền từ nhiều trường khác nhau (như trong Tickets.js)
+          const revenue = ticket.total || 
+                         ticket.totalPrice || 
+                         ticket.totalAmount ||
+                         ticket.price || 
+                         ticket.amount || 
+                         ticket.seatTotalPrice ||
+                         0;
+          
+          totalRevenue += revenue;
+          
+          // Thống kê theo phim
+          const movieName = ticket.movie?.name || 
+                           ticket.movie?.title || 
+                           ticket.movieName || 
+                           ticket.movieTitle || 
+                           'Phim không xác định';
+          
+          if (!movieStats[movieName]) {
+            movieStats[movieName] = { revenue: 0, tickets: 0 };
+          }
+          movieStats[movieName].revenue += revenue;
+          movieStats[movieName].tickets += 1;
+          
+          // Thống kê theo rạp
+          const cinemaName = ticket.cinema?.name || 
+                            ticket.cinemaName || 
+                            'Rạp không xác định';
+          
+          if (!cinemaStats[cinemaName]) {
+            cinemaStats[cinemaName] = { revenue: 0, tickets: 0 };
+          }
+          cinemaStats[cinemaName].revenue += revenue;
+          cinemaStats[cinemaName].tickets += 1;
+          
+          // Thống kê theo ngày
+          const ticketDate = ticket.createdAt || 
+                            ticket.bookingTime || 
+                            ticket.date ||
+                            ticket.confirmedAt;
+          
+          if (ticketDate) {
+            const date = dayjs(ticketDate).format('YYYY-MM-DD');
+            if (!dailyStats[date]) {
+              dailyStats[date] = { revenue: 0, tickets: 0 };
+            }
+            dailyStats[date].revenue += revenue;
+            dailyStats[date].tickets += 1;
+          }
+        });
+        
+        // Cập nhật stats tổng quan
+        setStats(prev => ({
+          ...prev,
+          totalRevenue,
+          totalTickets: filteredTickets.length,
+          totalMovies: Object.keys(movieStats).length,
+          totalCinemas: Object.keys(cinemaStats).length
+        }));
+        
+        // Xử lý dữ liệu phim
+        const movieDataArray = Object.entries(movieStats)
+          .map(([name, stats]) => ({
+            key: name,
+            movie: name,
+            total: stats.revenue,
+            tickets: stats.tickets,
+            percentage: totalRevenue > 0 ? ((stats.revenue / totalRevenue) * 100).toFixed(1) : 0
+          }))
+          .sort((a, b) => b.total - a.total);
+        
+        setMovieData(movieDataArray);
+        
+        // Tạo dữ liệu pie chart cho phim
+        const pieChartData = movieDataArray.slice(0, 5).map((movie, index) => ({
+          name: movie.movie.length > 20 ? movie.movie.substring(0, 20) + '...' : movie.movie,
+          value: movie.total,
+          color: ['#1890ff', '#52c41a', '#722ed1', '#fa8c16', '#eb2f96'][index]
+        }));
+        setPieData(pieChartData);
+        
+        // Xử lý dữ liệu rạp
+        const cinemaDataArray = Object.entries(cinemaStats)
+          .map(([name, stats]) => ({
+            key: name,
+            cinema: name,
+            total: stats.revenue,
+            tickets: stats.tickets,
+            percentage: totalRevenue > 0 ? ((stats.revenue / totalRevenue) * 100).toFixed(1) : 0
+          }))
+          .sort((a, b) => b.total - a.total);
+        
+        setCinemaData(cinemaDataArray);
+        
+        // Tạo dữ liệu bar chart cho rạp
+        const barChartData = cinemaDataArray.map(cinema => ({
+          name: cinema.cinema.length > 15 ? cinema.cinema.substring(0, 15) + '...' : cinema.cinema,
+          total: cinema.total,
+          tickets: cinema.tickets
+        }));
+        setChartData(barChartData);
+        
+        // Xử lý dữ liệu xu hướng theo ngày
+        const trendDataArray = Object.entries(dailyStats)
+          .map(([date, stats]) => ({
+            date: dayjs(date).format('DD/MM'),
+            revenue: stats.revenue,
+            tickets: stats.tickets
+          }))
+          .sort((a, b) => a.date.localeCompare(b.date))
+          .slice(-7); // Chỉ lấy 7 ngày gần nhất
+        
+        setTrendData(trendDataArray);
+        
+        message.success(`Đã tải thống kê từ ${filteredTickets.length} vé (${tickets.length} tổng số vé)`);
+        
+      } else {
+        // Không có dữ liệu vé
+        setMovieData([]);
+        setCinemaData([]);
+        setChartData([]);
+        setPieData([]);
+        setTrendData([]);
+        
+        setStats(prev => ({
+          ...prev,
+          totalRevenue: 0,
+          totalTickets: 0
+        }));
+        
+        message.info('Chưa có dữ liệu vé để thống kê');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching revenue data:', error);
+      message.error('Lỗi khi tải dữ liệu thống kê: ' + error.message);
+      
+      // Reset data on error
+      setMovieData([]);
+      setCinemaData([]);
+      setChartData([]);
+      setPieData([]);
+      setTrendData([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const movieColumns = [
     {
@@ -169,23 +402,31 @@ const RevenueStatistics = () => {
     },
   ];
 
-  const handleFilter = () => {
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      message.success("Dữ liệu đã được cập nhật");
-      setLoading(false);
-    }, 1000);
+  const handleFilter = async () => {
+    await fetchRevenueData();
+    message.success("Dữ liệu đã được cập nhật");
   };
 
-  const handleRefresh = () => {
-    setLoading(true);
-    // Simulate data refresh
-    setTimeout(() => {
-      message.success("Dữ liệu đã được làm mới");
-      setLoading(false);
-    }, 800);
+  const handleRefresh = async () => {
+    await fetchRevenueData();
+    message.success("Dữ liệu đã được làm mới");
   };
+
+  // Show loading screen during initial load
+  if (initialLoading) {
+    return (
+      <div style={{ 
+        padding: 24, 
+        background: "#f5f5f5", 
+        minHeight: "100vh",
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center"
+      }}>
+        <Spin size="large" tip="Đang tải dữ liệu thống kê..." />
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: 24, background: "#f5f5f5", minHeight: "100vh" }}>
@@ -207,10 +448,11 @@ const RevenueStatistics = () => {
               placeholder="Chọn phim"
             >
               <Option value="all">Tất cả phim</Option>
-              <Option value="BỘ 5 SIÊU ĐẲNG CẤP">BỘ 5 SIÊU ĐẲNG CẤP</Option>
-              <Option value="Bí Kíp Luyện Rồng">
-                Cuu Long Thanh Trai Vay Ham
-              </Option>
+              {movies.map(movie => (
+                <Option key={movie._id} value={movie._id}>
+                  {movie.name}
+                </Option>
+              ))}
             </Select>
           </Col>
           <Col>
@@ -287,59 +529,95 @@ const RevenueStatistics = () => {
       <Row gutter={16} style={{ marginBottom: 24 }}>
         <Col span={12}>
           <Card title="Doanh thu theo rạp" size="small">
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ", "Doanh thu"]}
-                />
-                <Bar dataKey="total" fill="#1890ff" barSize={40} />
-              </BarChart>
-            </ResponsiveContainer>
+            {chartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={chartData}>
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip 
+                    formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ", "Doanh thu"]}
+                  />
+                  <Bar dataKey="total" fill="#1890ff" barSize={40} />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ 
+                height: 300, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#999'
+              }}>
+                {loading ? <Spin /> : 'Không có dữ liệu doanh thu theo rạp'}
+              </div>
+            )}
           </Card>
         </Col>
         <Col span={12}>
           <Card title="Phân bổ doanh thu theo phim" size="small">
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ"]} />
-              </PieChart>
-            </ResponsiveContainer>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ"]} />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div style={{ 
+                height: 300, 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                color: '#999'
+              }}>
+                {loading ? <Spin /> : 'Không có dữ liệu doanh thu theo phim'}
+              </div>
+            )}
           </Card>
         </Col>
       </Row>
 
       {/* Trend Chart */}
-      <Card title="Xu hướng doanh thu 7 ngày qua" style={{ marginBottom: 24 }}>
-        <ResponsiveContainer width="100%" height={250}>
-          <LineChart data={trendData}>
-            <XAxis dataKey="date" />
-            <YAxis />
-            <Tooltip formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ", "Doanh thu"]} />
-            <Line 
-              type="monotone" 
-              dataKey="revenue" 
-              stroke="#52c41a" 
-              strokeWidth={3}
-              dot={{ fill: "#52c41a", strokeWidth: 2, r: 4 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
+      <Card title="Xu hướng doanh thu theo ngày" style={{ marginBottom: 24 }}>
+        {trendData.length > 0 ? (
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={trendData}>
+              <XAxis dataKey="date" />
+              <YAxis />
+              <Tooltip formatter={(value) => [value.toLocaleString("vi-VN") + " VNĐ", "Doanh thu"]} />
+              <Line 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke="#52c41a" 
+                strokeWidth={3}
+                dot={{ fill: "#52c41a", strokeWidth: 2, r: 4 }}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{ 
+            height: 250, 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            color: '#999'
+          }}>
+            {loading ? <Spin /> : 'Không có dữ liệu xu hướng doanh thu'}
+          </div>
+        )}
       </Card>
 
       {/* Summary */}
@@ -348,7 +626,10 @@ const RevenueStatistics = () => {
           💰 Tổng doanh thu: {stats.totalRevenue.toLocaleString("vi-VN")} VNĐ
         </Title>
         <Text type="secondary">
-          Từ {dateRange[0]?.format("DD/MM/YYYY")} đến {dateRange[1]?.format("DD/MM/YYYY")}
+          Từ {dateRange[0]?.format("DD/MM/YYYY")} đến {dateRange[1]?.format("DD/MM/YYYY")} 
+          {selectedMovie !== 'all' && (
+            <span> - Phim: {movies.find(m => m._id === selectedMovie)?.name || 'Đã chọn'}</span>
+          )}
         </Text>
       </Card>
 
@@ -362,6 +643,10 @@ const RevenueStatistics = () => {
               pagination={false}
               bordered
               size="small"
+              loading={loading}
+              locale={{
+                emptyText: loading ? 'Đang tải...' : 'Không có dữ liệu doanh thu theo phim'
+              }}
             />
           </Card>
         </Col>
@@ -373,6 +658,10 @@ const RevenueStatistics = () => {
               pagination={false}
               bordered
               size="small"
+              loading={loading}
+              locale={{
+                emptyText: loading ? 'Đang tải...' : 'Không có dữ liệu doanh thu theo rạp'
+              }}
             />
           </Card>
         </Col>

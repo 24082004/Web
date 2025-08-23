@@ -65,10 +65,12 @@ const Tickets = () => {
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     fetchTickets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pagination.current, pagination.pageSize]);
 
   useEffect(() => {
@@ -80,6 +82,7 @@ const Tickets = () => {
       }
     }, 500);
     return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchText]);
 
   const handleRefresh = () => {
@@ -100,27 +103,47 @@ const Tickets = () => {
       title: "Khách hàng",
       dataIndex: ["user", "name"],
       key: "customer",
-      render: (_, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>
-            {record.user?.name || "Ẩn danh"}
+      render: (_, record) => {
+        // Ưu tiên userInfo trước, sau đó mới đến user
+        const customerName = record.userInfo?.fullName || 
+                           record.customerName || 
+                           record.user?.name || 
+                           "Ẩn danh";
+        const customerEmail = record.userInfo?.email || 
+                            record.customerEmail || 
+                            record.user?.email || 
+                            "";
+        
+        return (
+          <div>
+            <div style={{ fontWeight: 500 }}>
+              {customerName}
+            </div>
+            <div style={{ fontSize: 12, color: "#666" }}>
+              {customerEmail}
+            </div>
           </div>
-          <div style={{ fontSize: 12, color: "#666" }}>
-            {record.user?.email}
-          </div>
-        </div>
-      ),
+        );
+      },
     },
     {
-        title: "Phim",
-        key: "movie",
-        render: (_, record) => (
-            <div style={{ fontWeight: 500 }}>
+      title: "Phim",
+      key: "movie",
+      render: (_, record) => {
+        const movieName = record.movie?.name || 
+                         record.movie?.title || 
+                         record.movieName || 
+                         record.movieTitle || 
+                         "N/A";
+        
+        return (
+          <div style={{ fontWeight: 500 }}>
             <VideoCameraOutlined style={{ marginRight: 4 }} />
-            {record.movie?.title || record.movieName || "N/A"}
-            </div>
-        ),
-        },
+            {movieName}
+          </div>
+        );
+      },
+    },
     {
       title: "Rạp / Phòng",
       key: "cinema",
@@ -135,77 +158,122 @@ const Tickets = () => {
     {
       title: "Ngày chiếu",
       key: "showDate",
-      render: (_, record) =>
-        record.showDate
-          ? moment(record.showDate).format("DD/MM/YYYY")
-          : record.showtime?.showDate
-          ? moment(record.showtime.showDate).format("DD/MM/YYYY")
-          : "N/A",
+      render: (_, record) => {
+        const showDate = record.showDate || 
+                        record.time?.showDate || 
+                        record.time?.date || 
+                        record.showtime?.showDate || 
+                        record.showtime?.date ||
+                        record.createdAt;
+        
+        return showDate ? moment(showDate).format("DD/MM/YYYY") : "N/A";
+      },
     },
     {
       title: "Giờ chiếu",
       key: "showTime",
-      render: (_, record) =>
-        record.showTime || record.showtime?.showTime || "N/A",
+      render: (_, record) => {
+        const showTime = record.showTime || 
+                        record.time?.startTime || 
+                        record.time?.time || 
+                        record.showtime?.startTime || 
+                        record.showtime?.time ||
+                        record.startTime;
+        
+        return showTime || "N/A";
+      },
     },
     {
       title: "Ghế",
       key: "seats",
       render: (_, record) => {
+        let seatNames = "";
+        
+        // Thử nhiều cách để lấy thông tin ghế
         if (record.seats && Array.isArray(record.seats)) {
-          return record.seats
-            .map((s) =>
-              typeof s === "string"
-                ? s
-                : s?.seatNumber || s?.name || s?._id?.slice(-3) || "N/A"
-            )
+          seatNames = record.seats
+            .map((s) => {
+              if (typeof s === "string") return s;
+              return s?.seatNumber || s?.name || s?.row + s?.column || s?._id?.slice(-3) || "N/A";
+            })
+            .join(", ");
+        } else if (record.seatNumbers) {
+          seatNames = record.seatNumbers;
+        } else if (record.seatNumber) {
+          seatNames = record.seatNumber;
+        } else if (record.selectedSeats && Array.isArray(record.selectedSeats)) {
+          seatNames = record.selectedSeats
+            .map(s => s?.seatNumber || s?.name || "N/A")
             .join(", ");
         }
-        if (record.seatNumbers) return record.seatNumbers;
-        if (record.seatNumber) return record.seatNumber;
-        return "N/A";
+        
+        return seatNames || "N/A";
       },
     },
     {
-        title: "Tổng tiền",
-        key: "totalPrice",
-        render: (_, record) => (
-            <div style={{ fontWeight: 600, color: "#52c41a" }}>
-            {(record.totalPrice || record.price || record.amount || 0).toLocaleString()}đ
-            </div>
-        ),
-        },
+      title: "Tổng tiền",
+      key: "totalPrice",
+      render: (_, record) => {
+        // Thử nhiều trường có thể chứa giá tiền từ backend
+        const price = record.total || 
+                     record.totalPrice || 
+                     record.totalAmount ||
+                     record.price || 
+                     record.amount || 
+                     record.seatTotalPrice ||
+                     0;
+        
+        return (
+          <div style={{ fontWeight: 600, color: "#52c41a" }}>
+            {price.toLocaleString()}đ
+          </div>
+        );
+      },
+    },
     {
       title: "Trạng thái",
       key: "status",
-      render: (_, record) => (
-        <Tag
-          color={
-            record.status === "confirmed" || record.status === "active"
-              ? "green"
-              : record.status === "cancelled" || record.status === "canceled"
-              ? "red"
-              : record.status === "pending"
-              ? "orange"
-              : "default"
-          }
-        >
-          {record.status === "confirmed" || record.status === "active"
-            ? "Đã xác nhận"
-            : record.status === "cancelled" || record.status === "canceled"
-            ? "Đã hủy"
-            : record.status === "pending"
-            ? "Chờ xác nhận"
-            : record.status}
-        </Tag>
-      ),
+      render: (_, record) => {
+        const status = record.status;
+        let color = "default";
+        let text = status;
+        
+        switch (status) {
+          case "completed":
+          case "confirmed":
+          case "active":
+            color = "green";
+            text = "Đã xác nhận";
+            break;
+          case "cancelled":
+          case "canceled":
+            color = "red";
+            text = "Đã hủy";
+            break;
+          case "pending":
+          case "pending_payment":
+            color = "orange";
+            text = "Chờ thanh toán";
+            break;
+          default:
+            color = "default";
+            text = status || "Không rõ";
+        }
+        
+        return <Tag color={color}>{text}</Tag>;
+      },
     },
     {
       title: "Ngày đặt",
-      dataIndex: "createdAt",
       key: "createdAt",
-      render: (date) =>
-        date ? moment(date).format("DD/MM/YY HH:mm") : "Không rõ",
+      render: (_, record) => {
+        const createdDate = record.createdAt || 
+                           record.bookingTime || 
+                           record.date ||
+                           record.confirmedAt;
+        
+        return createdDate ? moment(createdDate).format("DD/MM/YY HH:mm") : "Không rõ";
+      },
     },
   ];
 
