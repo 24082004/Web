@@ -1,4 +1,3 @@
-// src/pages/EditMovie.js
 import React, { useEffect, useState, useCallback } from "react";
 import { Form, Input, Button, message,InputNumber, DatePicker, Select, Spin } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
@@ -38,9 +37,6 @@ const EditMovie = () => {
         return;
       }
       const data = response.data;
-      //console.log("check data >>", data);
-
-      
 
       form.setFieldsValue({
         name: data.name,
@@ -64,7 +60,6 @@ const EditMovie = () => {
   }, [id, form]);
 
   useEffect(() => {
-    // Đảm bảo load danh sách trước rồi mới set form
     const loadData = async () => {
       await fetchPeople();
       await fetchMovie();

@@ -15,7 +15,6 @@ const AddMovie = () => {
   const [actors, setActors] = useState([]);
   const [genres, setGenres] = useState([]);
 
-  // 🔹 Lấy danh sách director / actor / genre từ API
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -24,7 +23,6 @@ const AddMovie = () => {
         const genRes = await axios.get("https://my-backend-api-movie.onrender.com/api/genres");
         
         setDirectors(dirRes.data.data);
-        //console.log("check director >> ", directors);
         setActors(actRes.data.data);
         setGenres(genRes.data.data.genres);
       } catch (err) {
@@ -35,7 +33,6 @@ const AddMovie = () => {
     fetchData();
   }, []);
 
-  // 🔹 Gửi request thêm phim
   const onFinish = async (values) => {
     setLoading(true);
     try {
@@ -45,12 +42,9 @@ const AddMovie = () => {
                    "Authorization": `Bearer ${token}`
          }
       });
-      // log dữ liệu backend trả về
         console.log("Response:", res.data);
 
         message.success("Thêm phim mới thành công!");
-
-        // điều hướng về màn hình danh sách phim
         navigate("/admin/movie/list");
     } catch (error) {
       console.error(error);
@@ -63,7 +57,6 @@ const AddMovie = () => {
   return (
     <Card title="Thêm Phim Mới" bordered={false} style={{ maxWidth: 800, margin: "0 auto" }}>
       <Form layout="vertical" onFinish={onFinish}>
-        {/* 🟢 Bắt buộc */}
         <Form.Item
           name="name"
           label="Tên phim"
@@ -88,7 +81,6 @@ const AddMovie = () => {
           <Input placeholder="Ví dụ: Tiếng Việt, English" />
         </Form.Item>
 
-        {/* 🟡 Tùy chọn */}
         <Form.Item name="image" label="Poster">
           <Input placeholder="URL hình ảnh" />
         </Form.Item>
