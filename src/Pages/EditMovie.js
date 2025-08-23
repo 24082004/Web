@@ -1,10 +1,11 @@
 // src/pages/EditMovie.js
 import React, { useEffect, useState, useCallback } from "react";
-import { Form, Input, Button, message, DatePicker, Select, Spin } from "antd";
+import { Form, Input, Button, message,InputNumber, DatePicker, Select, Spin } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import ApiService from "../services/ApiService";
 import dayjs from "dayjs";
 
+const { TextArea } = Input;
 const { Option } = Select;
 
 const EditMovie = () => {
@@ -43,9 +44,13 @@ const EditMovie = () => {
 
       form.setFieldsValue({
         name: data.name,
+        spoken_language:data.spoken_language,
+        image: data.image,
         subtitle: data.subtitle,
         censorship: data.censorship,
         duration: data.duration,
+        trailer: data.trailer,
+        storyLine: data.storyLine,
         rate: data.rate,
         release_date: data.release_date ? dayjs(data.release_date) : null,
         actor: (data.actor || []).map(d => d._id || d),
@@ -108,20 +113,32 @@ const EditMovie = () => {
           <Input />
         </Form.Item>
 
+        <Form.Item name="storyLine" label="Nội dung phim">
+          <TextArea rows={4} maxLength={2000} />
+        </Form.Item>
+
+        <Form.Item
+          name="spoken_language"
+          label="Ngôn ngữ"
+          rules={[{ required: true, message: "Vui lòng nhập ngôn ngữ" }]}
+        >
+          <Input placeholder="Ví dụ: Tiếng Việt, English" />
+        </Form.Item>
+
+        <Form.Item name="image" label="Poster">
+          <Input placeholder="URL hình ảnh" />
+        </Form.Item>
+
         <Form.Item name="subtitle" label="Phụ đề">
           <Input />
         </Form.Item>
 
-        <Form.Item
-          name="censorship"
-          label="Phân loại"
-          rules={[{ required: true, message: "Vui lòng chọn phân loại" }]}
-        >
-          <Select allowClear>
-            <Option value="P">P</Option>
-            <Option value="T13">T13</Option>
-            <Option value="T16">T16</Option>
-            <Option value="T18">T18</Option>
+        <Form.Item name="censorship" label="Phân loại">
+          <Select defaultValue="P">
+            <Option value="P">P: Phim phù hợp với mọi lứa tuổi</Option>
+            <Option value="C13">C13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
+            <Option value="C16">C16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
+            <Option value="C18">C18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
           </Select>
         </Form.Item>
 
@@ -134,7 +151,7 @@ const EditMovie = () => {
         </Form.Item>
 
         <Form.Item name="rate" label="Đánh giá">
-          <Input type="number" step="0.1" />
+          <InputNumber min={0} max={10} step={0.1} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
@@ -142,7 +159,7 @@ const EditMovie = () => {
           label="Ngày phát hành"
           rules={[{ required: true, message: "Vui lòng chọn ngày phát hành" }]}
         >
-          <DatePicker format="YYYY-MM-DD" />
+          <DatePicker disabled format="DD/MM/YYYY" />
         </Form.Item>
 
         {/* Đạo diễn */}
@@ -185,6 +202,10 @@ const EditMovie = () => {
                 <Option key={g._id} value={g._id}>{g.name}</Option>
               ))}
           </Select>
+        </Form.Item>
+
+        <Form.Item name="trailer" label="Trailer">
+          <Input placeholder="URL trailer" />
         </Form.Item>
 
         <Form.Item>

@@ -99,17 +99,10 @@ const AddMovie = () => {
 
         <Form.Item name="censorship" label="Phân loại">
           <Select defaultValue="P">
-            <Option value="G">G</Option>
-            <Option value="PG">PG</Option>
-            <Option value="PG-13">PG-13</Option>
-            <Option value="R">R</Option>
-            <Option value="NC-17">NC-17</Option>
-            <Option value="P">P</Option>
-            <Option value="K">K</Option>
-            <Option value="T13">T13</Option>
-            <Option value="T16">T16</Option>
-            <Option value="T18">T18</Option>
-            <Option value="C">C</Option>
+            <Option value="P">P: Phim phù hợp với mọi lứa tuổi</Option>
+            <Option value="C13">C13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
+            <Option value="C16">C16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
+            <Option value="C18">C18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
           </Select>
         </Form.Item>
 
