@@ -1,4 +1,6 @@
 // src/services/ApiService.js
+import dayjs from "dayjs";
+
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
   "https://my-backend-api-movie.onrender.com/api";
@@ -489,6 +491,161 @@ class ApiService {
   return this.request("/movies?status=now_showing");
   }
 
+  // ================= Ticket methods =================
+  async getTickets(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets${queryString ? `?${queryString}` : ''}`);
+  }
+
+  async getTicketStats() {
+    return this.request("/tickets/stats");
+  }
+
+  async getTicketsByShowtime(showtimeId) {
+    return this.request(`/tickets/showtime/${showtimeId}`);
+  }
+
+  async getTicketsByEmail(email) {
+    return this.request(`/tickets/email/${email}`);
+  }
+
+  async getTicketsByDateRange(startDate, endDate, status = 'completed') {
+    return this.request(`/tickets?status=${status}&startDate=${startDate}&endDate=${endDate}`);
+  }
+
+  async getRevenueStats(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets/stats${queryString ? `?${queryString}` : ''}`);
+  }
+
+  // ================= Statistics methods =================
+  async getRevenueByMovie(startDate, endDate) {
+    try {
+      const response = await this.getTickets({
+        status: 'completed',
+        startDate,
+        endDate,
+        limit: 1000 // Get all tickets for calculation
+      });
+      
+      if (response.success && response.data) {
+        // Process tickets to calculate revenue by movie
+        const movieRevenue = {};
+        
+        response.data.forEach(ticket => {
+          const movieName = ticket.movie?.name || ticket.movieTitle || 'Unknown Movie';
+          const movieId = ticket.movie?._id || ticket.movie;
+          const revenue = ticket.totalAmount || ticket.total || 0;
+          
+          if (!movieRevenue[movieId]) {
+            movieRevenue[movieId] = {
+              movieName,
+              revenue: 0,
+              ticketCount: 0
+            };
+          }
+          
+          movieRevenue[movieId].revenue += revenue;
+          movieRevenue[movieId].ticketCount += 1;
+        });
+        
+        return {
+          success: true,
+          data: Object.values(movieRevenue)
+        };
+      }
+      
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error getting revenue by movie:', error);
+      return { success: false, data: [] };
+    }
+  }
+
+  async getRevenueByCinema(startDate, endDate) {
+    try {
+      const response = await this.getTickets({
+        status: 'completed',
+        startDate,
+        endDate,
+        limit: 1000
+      });
+      
+      if (response.success && response.data) {
+        // Process tickets to calculate revenue by cinema
+        const cinemaRevenue = {};
+        
+        response.data.forEach(ticket => {
+          const cinemaName = ticket.cinema?.name || ticket.cinemaName || 'Unknown Cinema';
+          const cinemaId = ticket.cinema?._id || ticket.cinema;
+          const revenue = ticket.totalAmount || ticket.total || 0;
+          
+          if (!cinemaRevenue[cinemaId]) {
+            cinemaRevenue[cinemaId] = {
+              cinemaName,
+              revenue: 0,
+              ticketCount: 0
+            };
+          }
+          
+          cinemaRevenue[cinemaId].revenue += revenue;
+          cinemaRevenue[cinemaId].ticketCount += 1;
+        });
+        
+        return {
+          success: true,
+          data: Object.values(cinemaRevenue)
+        };
+      }
+      
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error getting revenue by cinema:', error);
+      return { success: false, data: [] };
+    }
+  }
+
+  async getDailyRevenue(startDate, endDate) {
+    try {
+      const response = await this.getTickets({
+        status: 'completed',
+        startDate,
+        endDate,
+        limit: 1000
+      });
+      
+      if (response.success && response.data) {
+        // Process tickets to calculate daily revenue
+        const dailyRevenue = {};
+        
+        response.data.forEach(ticket => {
+          const date = dayjs(ticket.createdAt || ticket.bookingTime).format('YYYY-MM-DD');
+          const revenue = ticket.totalAmount || ticket.total || 0;
+          
+          if (!dailyRevenue[date]) {
+            dailyRevenue[date] = {
+              date,
+              revenue: 0,
+              count: 0
+            };
+          }
+          
+          dailyRevenue[date].revenue += revenue;
+          dailyRevenue[date].count += 1;
+        });
+        
+        return {
+          success: true,
+          data: Object.values(dailyRevenue).sort((a, b) => a.date.localeCompare(b.date))
+        };
+      }
+      
+      return { success: false, data: [] };
+    } catch (error) {
+      console.error('Error getting daily revenue:', error);
+      return { success: false, data: [] };
+    }
+  }
 
   // ================= Utility =================
   getBaseURL() {
