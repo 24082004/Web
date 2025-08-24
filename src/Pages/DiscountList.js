@@ -8,7 +8,6 @@ import {
   SearchOutlined, 
   EyeOutlined,
   CalendarOutlined,
-  BankOutlined,
   TagOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
@@ -96,14 +95,12 @@ const DiscountList = () => {
         // Safe string checks with fallbacks
         const name = discount.name || '';
         const code = discount.code || '';
-        const cinemaName = discount.cinema?.name || '';
         
         const searchLower = value.toLowerCase();
         
         return (
           name.toLowerCase().includes(searchLower) ||
-          code.toLowerCase().includes(searchLower) ||
-          cinemaName.toLowerCase().includes(searchLower)
+          code.toLowerCase().includes(searchLower)
         );
       });
       setFilteredDiscounts(filtered);
@@ -232,10 +229,6 @@ const DiscountList = () => {
               {discount.type === 'combo' && <Tag color="purple">Combo</Tag>}
             </p>
             <p>
-              <BankOutlined style={{ marginRight: 8 }} />
-              <strong>Rạp áp dụng:</strong> {discount.cinema ? discount.cinema.name : 'Tất cả các rạp'}
-            </p>
-            <p>
               <CalendarOutlined style={{ marginRight: 8 }} />
               <strong>Thời gian:</strong> {moment(discount.dayStart).format('DD/MM/YYYY')} - {moment(discount.dayEnd).format('DD/MM/YYYY')}
             </p>
@@ -334,12 +327,6 @@ const DiscountList = () => {
         { text: 'Combo', value: 'combo' },
       ],
       onFilter: (value, record) => record.type === value,
-    },
-    {
-      title: 'Rạp áp dụng',
-      dataIndex: 'cinema',
-      key: 'cinema',
-      render: (cinema) => cinema ? cinema.name : 'Tất cả các rạp',
     },
     {
       title: 'Thời gian',
@@ -450,7 +437,7 @@ const DiscountList = () => {
       {/* Search */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
         <Search
-          placeholder="Tìm kiếm theo tên khuyến mãi, mã code hoặc rạp áp dụng..." 
+          placeholder="Tìm kiếm theo tên khuyến mãi hoặc mã code" 
           allowClear 
           style={{ maxWidth: 500 }} 
           value={searchText}

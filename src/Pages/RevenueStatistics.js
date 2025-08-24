@@ -42,11 +42,12 @@ const { RangePicker } = DatePicker;
 
 const RevenueStatistics = () => {
   const [selectedMovie, setSelectedMovie] = useState("all");
+  const [selectedCinema, setSelectedCinema] = useState("all");
   const [dateRange, setDateRange] = useState([dayjs().subtract(30, 'day'), dayjs()]);
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
   const [movies, setMovies] = useState([]);
-  // const [cinemas, setCinemas] = useState([]); // Commented out since not used in current implementation
+  const [cinemas, setCinemas] = useState([]);
   const [stats, setStats] = useState({
     totalRevenue: 0,
     totalTickets: 0,
@@ -73,7 +74,7 @@ const RevenueStatistics = () => {
       fetchRevenueData();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateRange, selectedMovie]);
+  }, [dateRange, selectedMovie, selectedCinema]);
 
   const fetchInitialData = async () => {
     try {
@@ -92,7 +93,12 @@ const RevenueStatistics = () => {
           const uniqueMovies = [];
           const movieIds = new Set();
           
+          // Tạo danh sách rạp từ dữ liệu vé
+          const uniqueCinemas = [];
+          const cinemaIds = new Set();
+          
           tickets.forEach(ticket => {
+            // Xử lý phim
             if (ticket.movie) {
               const movieId = ticket.movie._id || ticket.movie;
               const movieName = ticket.movie.name || 
@@ -109,25 +115,38 @@ const RevenueStatistics = () => {
                 });
               }
             }
+            
+            // Xử lý rạp
+            if (ticket.cinema) {
+              const cinemaId = ticket.cinema._id || ticket.cinema;
+              const cinemaName = ticket.cinema.name || 
+                               ticket.cinemaName || 
+                               'Rạp không xác định';
+              
+              if (cinemaId && cinemaName && !cinemaIds.has(cinemaId)) {
+                cinemaIds.add(cinemaId);
+                uniqueCinemas.push({
+                  _id: cinemaId,
+                  name: cinemaName
+                });
+              }
+            }
           });
           
           setMovies(uniqueMovies);
+          setCinemas(uniqueCinemas);
           
           setStats(prev => ({
             ...prev,
-            totalMovies: uniqueMovies.length
+            totalMovies: uniqueMovies.length,
+            totalCinemas: uniqueCinemas.length
           }));
         }
       } catch (error) {
         console.warn('Error fetching tickets for movie list:', error);
         setMovies([]);
+        setCinemas([]);
       }
-
-      // Set default cinema count
-      setStats(prev => ({
-        ...prev,
-        totalCinemas: 2 // Mock value since API endpoint not available
-      }));
 
       // Fetch initial revenue data
       await fetchRevenueData();
@@ -182,7 +201,14 @@ const RevenueStatistics = () => {
             movieMatch = movieId === selectedMovie;
           }
           
-          return statusMatch && dateMatch && movieMatch;
+          // Lọc theo rạp (nếu có chọn rạp cụ thể)
+          let cinemaMatch = true;
+          if (selectedCinema !== 'all') {
+            const cinemaId = ticket.cinema?._id || ticket.cinema;
+            cinemaMatch = cinemaId === selectedCinema;
+          }
+          
+          return statusMatch && dateMatch && movieMatch && cinemaMatch;
         });
         
         // Tính toán thống kê
@@ -455,6 +481,21 @@ const RevenueStatistics = () => {
             </Select>
           </Col>
           <Col>
+            <Select
+              value={selectedCinema}
+              onChange={setSelectedCinema}
+              style={{ width: 200 }}
+              placeholder="Chọn rạp"
+            >
+              <Option value="all">Tất cả rạp</Option>
+              {cinemas.map(cinema => (
+                <Option key={cinema._id} value={cinema._id}>
+                  {cinema.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col>
             <RangePicker
               value={dateRange}
               onChange={setDateRange}
@@ -628,6 +669,9 @@ const RevenueStatistics = () => {
           Từ {dateRange[0]?.format("DD/MM/YYYY")} đến {dateRange[1]?.format("DD/MM/YYYY")} 
           {selectedMovie !== 'all' && (
             <span> - Phim: {movies.find(m => m._id === selectedMovie)?.name || 'Đã chọn'}</span>
+          )}
+          {selectedCinema !== 'all' && (
+            <span> - Rạp: {cinemas.find(c => c._id === selectedCinema)?.name || 'Đã chọn'}</span>
           )}
         </Text>
       </Card>

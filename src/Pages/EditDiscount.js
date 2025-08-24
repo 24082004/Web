@@ -80,7 +80,6 @@ const EditDiscount = () => {
     }
   }, [id]);
 
-  // Handle form submission
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
