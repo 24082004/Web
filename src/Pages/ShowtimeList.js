@@ -10,6 +10,7 @@ import {
   DatePicker,
   TimePicker,
   message,
+  Switch,
 } from "antd";
 import moment from "moment";
 import apiService from "../services/ApiService";
@@ -32,6 +33,7 @@ function ShowtimeList() {
     try {
       setLoading(true);
       const res = await apiService.getShowtimes();
+      console.log("Showtimes data:", res.data);
       setShowtimes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error fetching showtimes:", error);
@@ -68,6 +70,43 @@ function ShowtimeList() {
     );
   });
 
+  // Toggle trạng thái ẩn/hiện
+  const handleToggleHidden = async (id, checked) => {
+    try {
+      const currentShowtime = showtimes.find(s => s._id === id);
+      if (!currentShowtime) {
+        return message.error("Không tìm thấy suất chiếu");
+      }
+
+      // Tạo dữ liệu update đầy đủ giống DiscountList
+      const payload = {
+        movie: currentShowtime.movie?._id || currentShowtime.movie,
+        cinema: currentShowtime.cinema?._id || currentShowtime.cinema,
+        room: currentShowtime.room?._id || currentShowtime.room,
+        date: currentShowtime.date,
+        time: currentShowtime.time,
+        hidden: !checked,
+      };
+
+      console.log("Sending update:", payload);
+
+      const res = await apiService.updateShowtime(id, payload);
+
+      if (res.success) {
+        message.success(`Đã ${checked ? "Chiếu" : "Ngừng Chiếu"} suất chiếu`);
+        setShowtimes(prev =>
+          prev.map(s => (s._id === id ? { ...s, hidden: payload.hidden } : s))
+        );
+      } else {
+        message.error(res.error || "Không thể cập nhật trạng thái");
+      }
+    } catch (error) {
+      console.error("Error toggle hidden:", error);
+      message.error("Không thể cập nhật trạng thái");
+    }
+  };
+
+
   const columns = [
     {
       title: "Ngày chiếu",
@@ -88,13 +127,24 @@ function ShowtimeList() {
     { title: "Phim", dataIndex: ["movie", "name"], key: "movie" },
     { title: "Rạp", dataIndex: ["cinema", "name"], key: "cinema" },
     { title: "Phòng", dataIndex: ["room", "name"], key: "room" },
+    {
+      title: "Trạng thái",
+      dataIndex: "hidden",
+      key: "hidden",
+      render: (hidden = false, record) => (
+        <Switch
+          checked={!hidden} // hidden=false => Hiện
+          onChange={(checked) => handleToggleHidden(record._id, checked)}
+          checkedChildren="Chiếu"
+          unCheckedChildren="Ngừng chiếu"
+        />
+      ),
+    },
   ];
 
   // Tạo suất chiếu
   const handleCreateShowtime = async (values) => {
     try {
-      console.log("Form submit values:", values);
-
       // Chuyển date + time thành ISO string
       const datetime = moment(
         `${values.date.format("YYYY-MM-DD")} ${values.time.format("HH:mm")}`,
@@ -110,10 +160,7 @@ function ShowtimeList() {
         hidden: false, // mặc định hiển thị
       };
 
-      console.log("Payload gửi API:", payload);
-
       const res = await apiService.createShowtime(payload);
-      console.log("Response API:", res);
 
       if (res.success) {
         message.success("Tạo suất chiếu thành công!");
@@ -181,30 +228,30 @@ function ShowtimeList() {
             name="cinema"
             label="Rạp"
             rules={[{ required: true, message: "Chọn rạp!" }]}
-            >
+          >
             <Select
-                placeholder="Chọn rạp"
-                options={cinemas.map((c) => ({ label: c.name, value: c._id }))}
-                onChange={(value) => {
-                setSelectedCinema(value); // lưu rạp đã chọn
-                form.setFieldsValue({ room: undefined }); // reset phòng
-                }}
+              placeholder="Chọn rạp"
+              options={cinemas.map((c) => ({ label: c.name, value: c._id }))}
+              onChange={(value) => {
+                setSelectedCinema(value);
+                form.setFieldsValue({ room: undefined });
+              }}
             />
-            </Form.Item>
+          </Form.Item>
 
-            <Form.Item
+          <Form.Item
             name="room"
             label="Phòng"
             rules={[{ required: true, message: "Chọn phòng!" }]}
-            >
+          >
             <Select
-                placeholder="Chọn phòng"
-                options={rooms
-                .filter((r) => r.cinema?._id === selectedCinema) // lọc theo rạp chọn
+              placeholder="Chọn phòng"
+              options={rooms
+                .filter((r) => r.cinema?._id === selectedCinema)
                 .map((r) => ({ label: r.name, value: r._id }))}
-                disabled={!selectedCinema} // disable nếu chưa chọn rạp
+              disabled={!selectedCinema}
             />
-            </Form.Item>
+          </Form.Item>
 
           <Form.Item
             name="date"

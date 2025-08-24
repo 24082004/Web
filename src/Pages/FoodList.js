@@ -459,6 +459,7 @@ const FoodList = () => {
         scroll={{ x: 800 }}
       />
 
+      {/* Add/Edit Food Modal */}
       <Modal
         title={
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

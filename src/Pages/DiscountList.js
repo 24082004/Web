@@ -8,6 +8,7 @@ import {
   SearchOutlined, 
   EyeOutlined,
   CalendarOutlined,
+  BankOutlined,
   TagOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
@@ -95,12 +96,14 @@ const DiscountList = () => {
         // Safe string checks with fallbacks
         const name = discount.name || '';
         const code = discount.code || '';
+        const cinemaName = discount.cinema?.name || '';
         
         const searchLower = value.toLowerCase();
         
         return (
           name.toLowerCase().includes(searchLower) ||
-          code.toLowerCase().includes(searchLower)
+          code.toLowerCase().includes(searchLower) ||
+          cinemaName.toLowerCase().includes(searchLower)
         );
       });
       setFilteredDiscounts(filtered);
@@ -228,6 +231,7 @@ const DiscountList = () => {
               {discount.type === 'food' && <Tag color="orange">Đồ ăn</Tag>}
               {discount.type === 'combo' && <Tag color="purple">Combo</Tag>}
             </p>
+
             <p>
               <CalendarOutlined style={{ marginRight: 8 }} />
               <strong>Thời gian:</strong> {moment(discount.dayStart).format('DD/MM/YYYY')} - {moment(discount.dayEnd).format('DD/MM/YYYY')}
@@ -437,7 +441,7 @@ const DiscountList = () => {
       {/* Search */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
         <Search
-          placeholder="Tìm kiếm theo tên khuyến mãi hoặc mã code" 
+          placeholder="Tìm kiếm theo tên khuyến mãi, mã code hoặc rạp áp dụng..." 
           allowClear 
           style={{ maxWidth: 500 }} 
           value={searchText}
