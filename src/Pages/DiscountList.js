@@ -394,7 +394,7 @@ const DiscountList = () => {
       {/* Search */}
       <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 16 }}>
         <Search
-          placeholder="Tìm kiếm theo tên khuyến mãi, mã code hoặc rạp áp dụng..." 
+          placeholder="Tìm kiếm theo tên khuyến mãi, mã code" 
           allowClear 
           style={{ maxWidth: 500 }} 
           value={searchText}
