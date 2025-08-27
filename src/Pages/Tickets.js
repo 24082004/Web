@@ -31,7 +31,6 @@ const Tickets = () => {
     total: 0,
   });
 
-  // Fetch tickets
   const fetchTickets = async (params = {}) => {
     try {
       setLoading(true);
@@ -244,6 +243,12 @@ const Tickets = () => {
           case "active":
             color = "green";
             text = "Đã xác nhận";
+            break;
+          case "used":
+          case "scanned":
+          case "checked_in":
+            color = "blue";
+            text = "Đã sử dụng";
             break;
           case "cancelled":
           case "canceled":

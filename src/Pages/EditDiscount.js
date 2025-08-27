@@ -28,15 +28,59 @@ import ApiService from '../services/ApiService';
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { TextArea } = Input;
 
 const EditDiscount = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [discountData, setDiscountData] = useState(null);
+  const [existingDiscounts, setExistingDiscounts] = useState([]);
   const navigate = useNavigate();
   const { id } = useParams();
+
+  // Fetch all discounts for validation
+  const fetchAllDiscounts = async () => {
+    try {
+      const response = await ApiService.getDiscounts();
+      if (response.success) {
+        setExistingDiscounts(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching all discounts:', error);
+    }
+  };
+
+  // Validate unique name (exclude current discount)
+  const validateUniqueName = (_, value) => {
+    if (!value) return Promise.resolve();
+    
+    const trimmedValue = value.trim();
+    const isDuplicate = existingDiscounts.some(
+      discount => discount._id !== id && discount.name.toLowerCase() === trimmedValue.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      return Promise.reject(new Error('Tên khuyến mãi đã tồn tại!'));
+    }
+    
+    return Promise.resolve();
+  };
+
+  // Validate unique code (exclude current discount)
+  const validateUniqueCode = (_, value) => {
+    if (!value) return Promise.resolve();
+    
+    const trimmedValue = value.trim().toUpperCase();
+    const isDuplicate = existingDiscounts.some(
+      discount => discount._id !== id && discount.code.toUpperCase() === trimmedValue
+    );
+    
+    if (isDuplicate) {
+      return Promise.reject(new Error('Mã code đã tồn tại!'));
+    }
+    
+    return Promise.resolve();
+  };
 
   // Fetch discount data
   const fetchDiscountData = async () => {
@@ -52,9 +96,8 @@ const EditDiscount = () => {
         form.setFieldsValue({
           name: discount.name,
           code: discount.code,
-          description: discount.description,
-          discountType: discount.type, // Dùng trực tiếp type từ API
-          discountValue: discount.percent, // Luôn dùng percent
+          discountType: discount.type,
+          discountValue: discount.percent,
           dateRange: [
             moment(discount.dayStart || discount.startDate),
             moment(discount.dayEnd || discount.endDate)
@@ -77,6 +120,7 @@ const EditDiscount = () => {
   useEffect(() => {
     if (id) {
       fetchDiscountData();
+      fetchAllDiscounts();
     }
   }, [id]);
 
@@ -86,9 +130,8 @@ const EditDiscount = () => {
       const updateData = {
         name: values.name.trim(),
         code: values.code.trim().toUpperCase(),
-        description: values.description?.trim(),
         type: values.discountType,
-        percent: parseInt(values.discountValue), // Luôn dùng percent
+        percent: parseInt(values.discountValue),
         dayStart: values.dateRange[0].toISOString(),
         dayEnd: values.dateRange[1].toISOString(),
         status: values.status ? 'active' : 'inactive',
@@ -162,7 +205,8 @@ const EditDiscount = () => {
                   rules={[
                     { required: true, message: 'Vui lòng nhập tên khuyến mãi' },
                     { min: 3, message: 'Tên khuyến mãi phải có ít nhất 3 ký tự' },
-                    { max: 100, message: 'Tên khuyến mãi không được quá 100 ký tự' }
+                    { max: 100, message: 'Tên khuyến mãi không được quá 100 ký tự' },
+                    { validator: validateUniqueName }
                   ]}
                 >
                   <Input placeholder="Ví dụ: Khuyến mãi cuối tuần" />
@@ -175,21 +219,14 @@ const EditDiscount = () => {
                     { required: true, message: 'Vui lòng nhập mã khuyến mãi' },
                     { min: 3, message: 'Mã khuyến mãi phải có ít nhất 3 ký tự' },
                     { max: 20, message: 'Mã khuyến mãi không được quá 20 ký tự' },
-                    { pattern: /^[A-Z0-9]+$/, message: 'Mã chỉ chứa chữ hoa và số' }
+                    { pattern: /^[A-Z0-9]+$/, message: 'Mã chỉ chứa chữ hoa và số' },
+                    { validator: validateUniqueCode }
                   ]}
                 >
                   <Input placeholder="Ví dụ: WEEKEND50" />
                 </Form.Item>
 
-                <Form.Item
-                  name="description"
-                  label="Mô tả"
-                >
-                  <TextArea 
-                    rows={3} 
-                    placeholder="Mô tả chi tiết về khuyến mãi..."
-                  />
-                </Form.Item>
+
               </Card>
             </Col>
 
@@ -211,19 +248,18 @@ const EditDiscount = () => {
 
                 <Form.Item
                   name="discountValue"
-                  label="Giá trị giảm giá (%)"
+                  label="Giá trị khuyến mãi (%)"
                   rules={[
                     { required: true, message: 'Vui lòng nhập giá trị khuyến mãi' },
-                    { type: 'number', min: 1, max: 100, message: 'Giá trị phải từ 1-100%' }
+                    { type: 'number', min: 1, max: 100, message: 'Giá trị phải từ 1% đến 100%' }
                   ]}
                 >
                   <InputNumber
-                    placeholder="Nhập phần trăm giảm giá"
+                    placeholder="Nhập giá trị từ 1-100"
                     style={{ width: '100%' }}
                     min={1}
                     max={100}
-                    formatter={value => `${value}%`}
-                    parser={value => value.replace('%', '')}
+                    addonAfter="%"
                   />
                 </Form.Item>
 

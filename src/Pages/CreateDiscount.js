@@ -26,19 +26,65 @@ import ApiService from '../services/ApiService';
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
-const { TextArea } = Input;
 
 const CreateDiscount = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [existingDiscounts, setExistingDiscounts] = useState([]);
   const navigate = useNavigate();
+
+  // Fetch existing discounts for validation
+  React.useEffect(() => {
+    const fetchExistingDiscounts = async () => {
+      try {
+        const response = await ApiService.getDiscounts();
+        if (response.success) {
+          setExistingDiscounts(response.data);
+        }
+      } catch (error) {
+        console.error('Error fetching existing discounts:', error);
+      }
+    };
+    
+    fetchExistingDiscounts();
+  }, []);
+
+  // Validate unique name
+  const validateUniqueName = (_, value) => {
+    if (!value) return Promise.resolve();
+    
+    const trimmedValue = value.trim();
+    const isDuplicate = existingDiscounts.some(
+      discount => discount.name.toLowerCase() === trimmedValue.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      return Promise.reject(new Error('Tên khuyến mãi đã tồn tại!'));
+    }
+    
+    return Promise.resolve();
+  };
+
+  // Validate unique code
+  const validateUniqueCode = (_, value) => {
+    if (!value) return Promise.resolve();
+    
+    const trimmedValue = value.trim().toUpperCase();
+    const isDuplicate = existingDiscounts.some(
+      discount => discount.code.toUpperCase() === trimmedValue
+    );
+    
+    if (isDuplicate) {
+      return Promise.reject(new Error('Mã code đã tồn tại!'));
+    }
+    
+    return Promise.resolve();
+  };
 
   // Handle form submission
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      console.log('Form values:', values);
-      
       const discountData = {
         name: values.name.trim(),
         code: values.code.trim().toUpperCase(),
@@ -46,13 +92,10 @@ const CreateDiscount = () => {
         percent: parseInt(values.discountValue) || 0,
         dayStart: values.dateRange[0].format('YYYY-MM-DD'),
         dayEnd: values.dateRange[1].format('YYYY-MM-DD'),
-        status: values.status ? 'active' : 'inactive',
-        description: values.description?.trim() || '',
+        status: values.status ? 'active' : 'inactive'
       };
 
-      console.log('Sending discount data:', discountData);
       const response = await ApiService.createDiscount(discountData);
-      console.log('Create response:', response);
       
       if (response.success) {
         message.success('Tạo khuyến mãi thành công!');
@@ -109,7 +152,8 @@ const CreateDiscount = () => {
                   rules={[
                     { required: true, message: 'Vui lòng nhập tên khuyến mãi' },
                     { min: 3, message: 'Tên khuyến mãi phải có ít nhất 3 ký tự' },
-                    { max: 100, message: 'Tên khuyến mãi không được quá 100 ký tự' }
+                    { max: 100, message: 'Tên khuyến mãi không được quá 100 ký tự' },
+                    { validator: validateUniqueName }
                   ]}
                 >
                   <Input placeholder="Ví dụ: Khuyến mãi cuối tuần" />
@@ -122,20 +166,11 @@ const CreateDiscount = () => {
                     { required: true, message: 'Vui lòng nhập mã khuyến mãi' },
                     { min: 3, message: 'Mã khuyến mãi phải có ít nhất 3 ký tự' },
                     { max: 20, message: 'Mã khuyến mãi không được quá 20 ký tự' },
-                    { pattern: /^[A-Z0-9]+$/, message: 'Mã chỉ chứa chữ hoa và số' }
+                    { pattern: /^[A-Z0-9]+$/, message: 'Mã chỉ chứa chữ hoa và số' },
+                    { validator: validateUniqueCode }
                   ]}
                 >
                   <Input placeholder="Ví dụ: WEEKEND50" />
-                </Form.Item>
-
-                <Form.Item
-                  name="description"
-                  label="Mô tả"
-                >
-                  <TextArea 
-                    rows={3} 
-                    placeholder="Mô tả chi tiết về khuyến mãi..."
-                  />
                 </Form.Item>
               </Card>
             </Col>
@@ -159,17 +194,18 @@ const CreateDiscount = () => {
 
                 <Form.Item
                   name="discountValue"
-                  label="Giá trị khuyến mãi"
+                  label="Giá trị khuyến mãi (%)"
                   rules={[
                     { required: true, message: 'Vui lòng nhập giá trị khuyến mãi' },
-                    { type: 'number', min: 1, message: 'Giá trị phải lớn hơn 0' }
+                    { type: 'number', min: 1, max: 100, message: 'Giá trị phải từ 1% đến 100%' }
                   ]}
                 >
                   <InputNumber
-                    placeholder="Nhập giá trị"
+                    placeholder="Nhập giá trị từ 1-100"
                     style={{ width: '100%' }}
-                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
+                    min={1}
+                    max={100}
+                    addonAfter="%"
                   />
                 </Form.Item>
 
@@ -199,40 +235,7 @@ const CreateDiscount = () => {
                     style={{ width: '100%' }}
                   />
                 </Form.Item>
-              </Card>
-            </Col>
-          </Row>
 
-          {/* Advanced Settings */}
-          <Card title="Cài đặt nâng cao" className="mb-6">
-            <Row gutter={24}>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="minOrderAmount"
-                  label="Giá trị đơn hàng tối thiểu"
-                >
-                  <InputNumber
-                    placeholder="0"
-                    style={{ width: '100%' }}
-                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
-                <Form.Item
-                  name="maxDiscountAmount"
-                  label="Giảm giá tối đa (VND)"
-                >
-                  <InputNumber
-                    placeholder="Không giới hạn"
-                    style={{ width: '100%' }}
-                    formatter={value => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                    parser={value => value.replace(/\$\s?|(,*)/g, '')}
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} md={8}>
                 <Form.Item
                   name="status"
                   label="Trạng thái"
@@ -243,9 +246,9 @@ const CreateDiscount = () => {
                     unCheckedChildren="Tạm dừng"
                   />
                 </Form.Item>
-              </Col>
-            </Row>
-          </Card>
+              </Card>
+            </Col>
+          </Row>
 
           {/* Form Actions */}
           <Card>
