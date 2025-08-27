@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://my-backend-api-movie.onrender.com/api';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://my-backend-api-movie.vercel.app/api';
 
 class ApiService {
   constructor() {

@@ -66,6 +66,21 @@ const AdminLogin = () => {
     }
   };
 
+  const handleTestLogin = () => {
+    setLoginData({
+      email: 'admin@company.com',
+      password: 'admin123456'
+    });
+    setMessage({ type: 'info', text: 'Đã điền thông tin test admin' });
+  };
+
+  // Handle logout (for testing)
+  const handleLogout = () => {
+    AuthService.logout();
+    setMessage({ type: 'success', text: 'Đã đăng xuất!' });
+    setLoginData({ email: '', password: '' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       {/* Background Effects */}
@@ -152,6 +167,24 @@ const AdminLogin = () => {
             )}
           </button>
 
+          {/* Test Login Button */}
+          <button
+            onClick={handleTestLogin}
+            disabled={loading}
+            className="w-full bg-white/5 border border-white/10 text-gray-300 py-3 rounded-xl font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          >
+            Điền thông tin test
+          </button>
+
+          {/* Logout Button (for testing) */}
+          {AuthService.isAdminAuthenticated() && (
+            <button
+              onClick={handleLogout}
+              className="w-full bg-red-600/20 border border-red-500/30 text-red-300 py-3 rounded-xl font-medium hover:bg-red-600/30 focus:outline-none focus:ring-2 focus:ring-red-500 transition-all duration-200"
+            >
+              Đăng xuất
+            </button>
+          )}
         </div>
 
         {/* Footer */}

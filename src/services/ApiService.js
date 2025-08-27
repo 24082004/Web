@@ -1,9 +1,8 @@
-// src/services/ApiService.js
 import dayjs from "dayjs";
 
 const API_BASE_URL =
   process.env.REACT_APP_API_URL ||
-  "https://my-backend-api-movie.onrender.com/api";
+  "https://my-backend-api-movie.vercel.app/api";
 
 class ApiService {
   constructor() {
@@ -64,6 +63,13 @@ class ApiService {
   }
 
   // ================= Auth methods =================
+  async adminLogin(credentials) {
+    return this.request("/auth/admin/login", {
+      method: "POST",
+      body: credentials,
+    });
+  }
+
   async login(credentials) {
     return this.request("/auth/login", {
       method: "POST",
