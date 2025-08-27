@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { Form, Input, Button, message,InputNumber, DatePicker, Select, Spin } from "antd";
+import { Form, Input, Button, message, InputNumber, DatePicker, Select, Spin } from "antd";
 import { useParams, useNavigate } from "react-router-dom";
 import ApiService from "../services/ApiService";
 import dayjs from "dayjs";
@@ -40,7 +40,7 @@ const EditMovie = () => {
 
       form.setFieldsValue({
         name: data.name,
-        spoken_language:data.spoken_language,
+        spoken_language: data.spoken_language,
         image: data.image,
         subtitle: data.subtitle,
         censorship: data.censorship,
@@ -48,10 +48,11 @@ const EditMovie = () => {
         trailer: data.trailer,
         storyLine: data.storyLine,
         rate: data.rate,
+        status: data.status,
         release_date: data.release_date ? dayjs(data.release_date) : null,
-        actor: (data.actor || []).map(d => d._id || d),
-        genre: (data.genre || []).map(d => d._id || d),
-        director: (data.director || []).map(d => d._id || d),
+        actor: (data.actor || []).map((d) => d._id || d),
+        genre: (data.genre || []).map((d) => d._id || d),
+        director: (data.director || []).map((d) => d._id || d),
       });
     } catch (error) {
       console.error("Lỗi khi lấy thông tin phim:", error);
@@ -112,6 +113,13 @@ const EditMovie = () => {
           <TextArea rows={4} maxLength={2000} />
         </Form.Item>
 
+        <Form.Item name="status" label="Trạng thái">
+          <Select>
+            <Option value="active">Kích hoạt</Option>
+            <Option value="inactive">Ngừng chiếu</Option>
+          </Select>
+        </Form.Item>
+
         <Form.Item
           name="spoken_language"
           label="Ngôn ngữ"
@@ -129,11 +137,11 @@ const EditMovie = () => {
         </Form.Item>
 
         <Form.Item name="censorship" label="Phân loại">
-          <Select defaultValue="P">
+          <Select>
             <Option value="P">P: Phim phù hợp với mọi lứa tuổi</Option>
-            <Option value="C13">C13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
-            <Option value="C16">C16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
-            <Option value="C18">C18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
+            <Option value="T13">T13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
+            <Option value="T16">T16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
+            <Option value="T18">T18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
           </Select>
         </Form.Item>
 
@@ -143,10 +151,6 @@ const EditMovie = () => {
           rules={[{ required: true, message: "Vui lòng nhập thời lượng" }]}
         >
           <Input placeholder="vd: 02:30:00" />
-        </Form.Item>
-
-        <Form.Item name="rate" label="Đánh giá">
-          <InputNumber min={0} max={10} step={0.1} style={{ width: "100%" }} />
         </Form.Item>
 
         <Form.Item
@@ -187,16 +191,34 @@ const EditMovie = () => {
           </Select>
         </Form.Item>
 
+        {/* Thể loại */}
         <Form.Item
           name="genre"
           label="Thể loại"
-          rules={[{ required: true, message: "Vui lòng chọn ít nhất 1 diễn viên" }]}
+          rules={[{ required: true, message: "Vui lòng chọn ít nhất 1 thể loại" }]}
         >
           <Select mode="multiple" placeholder="Chọn thể loại">
-              {genres.map((g) => (
-                <Option key={g._id} value={g._id}>{g.name}</Option>
-              ))}
+            {genres.map((g) => (
+              <Option key={g._id} value={g._id}>
+                {g.name}
+              </Option>
+            ))}
           </Select>
+        </Form.Item>
+
+        {/* Đánh giá */}
+        <Form.Item
+          name="rate"
+          label="Đánh giá"
+          rules={[{ required: true, message: "Vui lòng nhập đánh giá" }]}
+        >
+          <InputNumber
+            min={0}
+            max={10}
+            step={0.1}
+            style={{ width: "100%" }}
+            placeholder="Nhập điểm đánh giá (0 - 10)"
+          />
         </Form.Item>
 
         <Form.Item name="trailer" label="Trailer">

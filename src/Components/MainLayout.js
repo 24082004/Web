@@ -14,12 +14,10 @@ import {
   BorderOuterOutlined,
   AppstoreOutlined,
   SettingOutlined,
-  // FileTextOutlined,
   UnorderedListOutlined,
   StarOutlined,
   TagsOutlined,
-  // HistoryOutlined,
-  // UsergroupAddOutlined,
+  FieldTimeOutlined,
 } from "@ant-design/icons";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import AuthService from "../services/authService";
@@ -190,7 +188,7 @@ const MainLayout = ({ children }) => {
             <Link to="/admin/tickets">Danh sách vé</Link>
           </Menu.Item>
 
-          <Menu.Item key="11" icon={<UnorderedListOutlined />}>
+          <Menu.Item key="11" icon={<FieldTimeOutlined />}>
             <Link to="/admin/showtimes">Danh suất chiếu</Link>
           </Menu.Item>
 

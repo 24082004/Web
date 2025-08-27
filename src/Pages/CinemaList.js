@@ -1,6 +1,6 @@
 // src/Pages/CinemaList.js
 import React, { useEffect, useState } from "react";
-import { Table, Button, Space, Typography, message, Input, Modal, Switch, Form } from "antd";
+import { Table, Button, Space, Typography, message, Input, Modal, Form } from "antd";
 import { ReloadOutlined, EditOutlined, EnvironmentOutlined, PlusOutlined } from "@ant-design/icons";
 import ApiService from "../services/ApiService";
 
@@ -169,26 +169,6 @@ const CinemaList = () => {
       render: (hotline) => hotline || 'Chưa cập nhật',
     },
     {
-      title: 'Trạng thái',
-      dataIndex: 'status',
-      key: 'status',
-      width: 150,
-      render: (status, record) => (
-        <Switch
-          checked={status === 'active'}
-          loading={statusLoading[record._id] || false}
-          onChange={(checked) => handleStatusChange(record._id, checked ? 'active' : 'inactive')}
-          checkedChildren="Hoạt động"
-          unCheckedChildren="Tạm ngưng"
-        />
-      ),
-      filters: [
-        { text: 'Đang hoạt động', value: 'active' },
-        { text: 'Tạm ngưng', value: 'inactive' },
-      ],
-      onFilter: (value, record) => record.status === value,
-    },
-    {
       title: 'Hành động',
       key: 'action',
       width: 100,
@@ -291,10 +271,6 @@ const CinemaList = () => {
             ]}
           >
             <Input />
-          </Form.Item>
-
-          <Form.Item name="status" label="Trạng thái" valuePropName="checked">
-            <Switch checkedChildren="Hoạt động" unCheckedChildren="Tạm ngưng" />
           </Form.Item>
         </Form>
       </Modal>

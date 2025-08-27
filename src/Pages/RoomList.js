@@ -311,7 +311,6 @@ const RoomList = () => {
           <Form.Item name="status" label="Trạng thái" initialValue="active">
             <Select>
               <Select.Option value="active">Hoạt động</Select.Option>
-              <Select.Option value="maintenance">Bảo trì</Select.Option>
               <Select.Option value="inactive">Ngưng hoạt động</Select.Option>
             </Select>
           </Form.Item>

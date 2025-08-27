@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Table, Button, Input, message, Space, Tag } from "antd";
+import { Table, Button, Input, message, Switch, Space, Tag } from "antd";
 import { Link } from 'react-router-dom';
 import { EditOutlined, EyeOutlined, SearchOutlined, PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 import ApiService from '../services/ApiService';
@@ -8,6 +8,7 @@ import avatar2 from '../Assets/avatar2.png';
 const MovieList = () => {
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [statusLoading, setStatusLoading] = useState({});
   const [searchText, setSearchText] = useState('');
   const [filteredMovies, setFilteredMovies] = useState([]);
 
@@ -15,7 +16,7 @@ const MovieList = () => {
   const fetchMovies = async () => {
     setLoading(true);
     try {
-      const response = await ApiService.request('/movies');
+      const response = await ApiService.request('/movies/admin/all');
       
       if (response.success) {
         console.log('Movies data:', response.data); // Debug log
@@ -95,6 +96,8 @@ const MovieList = () => {
       );
     });
   };
+
+  
 
   const renderDirectors = (directors) => {
     if (!Array.isArray(directors) || directors.length === 0) return 'N/A';
@@ -253,6 +256,20 @@ const MovieList = () => {
           return new Date(date).toLocaleDateString('vi-VN');
         }
         return 'N/A';
+      },
+    },
+    {
+      title: 'Trạng thái',
+      dataIndex: 'status',
+      key: 'status',
+      width: 120,
+      render: (status, record) => {
+        const isActive = status === 'active';
+        return (
+          <Tag color={isActive ? 'green' : 'red'}>
+            {isActive ? 'Kích hoạt' : 'Ngừng chiếu'}
+          </Tag>
+        );
       },
     },
     {

@@ -19,7 +19,7 @@ import {
   UserOutlined,
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import ApiService from '../services/ApiService'; // Adjust the import path as necessary
+import ApiService from '../services/ApiService';
 
 const { Title, Text } = Typography;
 

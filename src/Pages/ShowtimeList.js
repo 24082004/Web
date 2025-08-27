@@ -10,7 +10,6 @@ import {
   DatePicker,
   TimePicker,
   message,
-  Switch,
 } from "antd";
 import moment from "moment";
 import apiService from "../services/ApiService";
@@ -21,6 +20,7 @@ function ShowtimeList() {
   const [searchMovie, setSearchMovie] = useState("");
   const [searchCinema, setSearchCinema] = useState("");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingShowtime, setEditingShowtime] = useState(null);
 
   const [movies, setMovies] = useState([]);
   const [cinemas, setCinemas] = useState([]);
@@ -33,7 +33,6 @@ function ShowtimeList() {
     try {
       setLoading(true);
       const res = await apiService.getShowtimes();
-      console.log("Showtimes data:", res.data);
       setShowtimes(Array.isArray(res.data) ? res.data : []);
     } catch (error) {
       console.error("Error fetching showtimes:", error);
@@ -50,15 +49,20 @@ function ShowtimeList() {
         const movieRes = await apiService.getMovies();
         const cinemaRes = await apiService.getCinemas();
         const roomRes = await apiService.getRooms();
+
         setMovies(movieRes.data || []);
         setCinemas(cinemaRes.data || []);
-        setRooms(roomRes.data || []);
+
+        // Lọc chỉ lấy phòng active
+        const activeRooms = (roomRes.data || []).filter(r => r.status?.trim() === "active");
+        setRooms(activeRooms);
       } catch (err) {
         console.error("Error fetch options:", err);
       }
     };
     fetchOptions();
   }, []);
+
 
   // Lọc dữ liệu theo input
   const filteredShowtimes = showtimes.filter((s) => {
@@ -70,42 +74,69 @@ function ShowtimeList() {
     );
   });
 
-  // Toggle trạng thái ẩn/hiện
-  const handleToggleHidden = async (id, checked) => {
-    try {
-      const currentShowtime = showtimes.find(s => s._id === id);
-      if (!currentShowtime) {
-        return message.error("Không tìm thấy suất chiếu");
-      }
-
-      // Tạo dữ liệu update đầy đủ giống DiscountList
-      const payload = {
-        movie: currentShowtime.movie?._id || currentShowtime.movie,
-        cinema: currentShowtime.cinema?._id || currentShowtime.cinema,
-        room: currentShowtime.room?._id || currentShowtime.room,
-        date: currentShowtime.date,
-        time: currentShowtime.time,
-        hidden: !checked,
-      };
-
-      console.log("Sending update:", payload);
-
-      const res = await apiService.updateShowtime(id, payload);
-
-      if (res.success) {
-        message.success(`Đã ${checked ? "Chiếu" : "Ngừng Chiếu"} suất chiếu`);
-        setShowtimes(prev =>
-          prev.map(s => (s._id === id ? { ...s, hidden: payload.hidden } : s))
-        );
-      } else {
-        message.error(res.error || "Không thể cập nhật trạng thái");
-      }
-    } catch (error) {
-      console.error("Error toggle hidden:", error);
-      message.error("Không thể cập nhật trạng thái");
-    }
+  // Mở modal thêm suất chiếu
+  const openCreateModal = () => {
+    setEditingShowtime(null);
+    form.resetFields();
+    setSelectedCinema(null);
+    setIsModalOpen(true);
   };
 
+  // Mở modal sửa suất chiếu
+  const openEditModal = (record) => {
+    setEditingShowtime(record);
+    setSelectedCinema(record.cinema?._id || record.cinema);
+    form.setFieldsValue({
+      movie: record.movie?._id || record.movie,
+      cinema: record.cinema?._id || record.cinema,
+      room: record.room?._id || record.room,
+      date: moment(record.date),
+      time: moment(record.time),
+    });
+    setIsModalOpen(true);
+  };
+
+  // Submit form (thêm / sửa)
+  const handleSubmit = async (values) => {
+    try {
+      const datetime = moment(
+        `${values.date.format("YYYY-MM-DD")} ${values.time.format("HH:mm")}`,
+        "YYYY-MM-DD HH:mm"
+      ).toISOString();
+
+      const payload = {
+        movie: values.movie,
+        cinema: values.cinema,
+        room: values.room,
+        date: datetime,
+        time: datetime,
+      };
+
+      let res;
+      if (editingShowtime) {
+        res = await apiService.updateShowtime(editingShowtime._id, payload);
+      } else {
+        res = await apiService.createShowtime(payload);
+      }
+
+      if (res.success) {
+        message.success(
+          editingShowtime
+            ? "Cập nhật suất chiếu thành công!"
+            : "Tạo suất chiếu thành công!"
+        );
+        setIsModalOpen(false);
+        form.resetFields();
+        setEditingShowtime(null);
+        fetchShowtimes();
+      } else {
+        message.error(res.error || "Không thể xử lý yêu cầu");
+      }
+    } catch (error) {
+      console.error("Error submit showtime:", error);
+      message.error("Không thể xử lý yêu cầu");
+    }
+  };
 
   const columns = [
     {
@@ -128,53 +159,18 @@ function ShowtimeList() {
     { title: "Rạp", dataIndex: ["cinema", "name"], key: "cinema" },
     { title: "Phòng", dataIndex: ["room", "name"], key: "room" },
     {
-      title: "Trạng thái",
-      dataIndex: "hidden",
-      key: "hidden",
-      render: (hidden = false, record) => (
-        <Switch
-          checked={!hidden} // hidden=false => Hiện
-          onChange={(checked) => handleToggleHidden(record._id, checked)}
-          checkedChildren="Chiếu"
-          unCheckedChildren="Ngừng chiếu"
-        />
-      ),
-    },
+    title: "Hành động",
+    key: "actions",
+    render: (_, record) => (
+      <Space>
+        <Button type="primary" onClick={() => openEditModal(record)}>
+          Sửa
+        </Button>
+      </Space>
+    ),
+  },
+
   ];
-
-  // Tạo suất chiếu
-  const handleCreateShowtime = async (values) => {
-    try {
-      // Chuyển date + time thành ISO string
-      const datetime = moment(
-        `${values.date.format("YYYY-MM-DD")} ${values.time.format("HH:mm")}`,
-        "YYYY-MM-DD HH:mm"
-      ).toISOString();
-
-      const payload = {
-        movie: values.movie,
-        cinema: values.cinema,
-        room: values.room,
-        date: datetime,
-        time: datetime,
-        hidden: false, // mặc định hiển thị
-      };
-
-      const res = await apiService.createShowtime(payload);
-
-      if (res.success) {
-        message.success("Tạo suất chiếu thành công!");
-        setIsModalOpen(false);
-        form.resetFields();
-        fetchShowtimes();
-      } else {
-        message.error(res.error || "Không thể tạo suất chiếu");
-      }
-    } catch (error) {
-      console.error("Error create showtime:", error);
-      message.error("Không thể tạo suất chiếu");
-    }
-  };
 
   return (
     <div style={{ padding: 20 }}>
@@ -193,7 +189,7 @@ function ShowtimeList() {
           onChange={(e) => setSearchCinema(e.target.value)}
           allowClear
         />
-        <Button type="primary" onClick={() => setIsModalOpen(true)}>
+        <Button type="primary" onClick={openCreateModal}>
           + Thêm suất chiếu
         </Button>
       </Space>
@@ -207,12 +203,15 @@ function ShowtimeList() {
       />
 
       <Modal
-        title="Tạo suất chiếu"
+        title={editingShowtime ? "Sửa suất chiếu" : "Tạo suất chiếu"}
         open={isModalOpen}
-        onCancel={() => setIsModalOpen(false)}
+        onCancel={() => {
+          setIsModalOpen(false);
+          setEditingShowtime(null);
+        }}
         footer={null}
       >
-        <Form form={form} layout="vertical" onFinish={handleCreateShowtime}>
+        <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             name="movie"
             label="Phim"
@@ -271,7 +270,7 @@ function ShowtimeList() {
 
           <Form.Item>
             <Button type="primary" htmlType="submit" block>
-              Tạo suất chiếu
+              {editingShowtime ? "Cập nhật" : "Tạo suất chiếu"}
             </Button>
           </Form.Item>
         </Form>
