@@ -8,7 +8,6 @@ import {
   SearchOutlined, 
   EyeOutlined,
   CalendarOutlined,
-  BankOutlined,
   TagOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
@@ -32,7 +31,6 @@ const DiscountList = () => {
       const response = await ApiService.getDiscounts();
       
       if (response.success) {
-        console.log('Discounts data:', response.data);
         setDiscounts(response.data);
         setFilteredDiscounts(response.data);
         message.success(`Đã tải ${response.data.length} mã khuyến mãi`);
@@ -42,45 +40,8 @@ const DiscountList = () => {
     } catch (error) {
       console.error('Error fetching discounts:', error);
       message.error('Lỗi kết nối API: ' + error.message);
-      
-      // Fallback data nếu API lỗi
-      const fallbackData = [
-        {
-          _id: '1',
-          name: 'Khuyến mãi tháng 7',
-          code: 'SUMMER2025',
-          percent: 15,
-          type: 'ticket',
-          cinema: { _id: '1', name: 'CGV Vincom Center' },
-          dayStart: '2025-07-01T00:00:00.000Z',
-          dayEnd: '2025-07-31T23:59:59.000Z',
-          status: 'active'
-        },
-        {
-          _id: '2',
-          name: 'Giảm giá đồ ăn',
-          code: 'FOOD20',
-          percent: 20,
-          type: 'food',
-          cinema: { _id: '2', name: 'Galaxy Cinema' },
-          dayStart: '2025-06-15T00:00:00.000Z',
-          dayEnd: '2025-08-15T23:59:59.000Z',
-          status: 'active'
-        },
-        {
-          _id: '3',
-          name: 'Combo 2 người',
-          code: 'COMBO25',
-          percent: 25,
-          type: 'combo',
-          cinema: { _id: '3', name: 'BHD Star Cineplex' },
-          dayStart: '2025-05-01T00:00:00.000Z',
-          dayEnd: '2025-06-30T23:59:59.000Z',
-          status: 'inactive'
-        },
-      ];
-      setDiscounts(fallbackData);
-      setFilteredDiscounts(fallbackData);
+      setDiscounts([]);
+      setFilteredDiscounts([]);
     } finally {
       setLoading(false);
     }
@@ -96,14 +57,12 @@ const DiscountList = () => {
         // Safe string checks with fallbacks
         const name = discount.name || '';
         const code = discount.code || '';
-        const cinemaName = discount.cinema?.name || '';
         
         const searchLower = value.toLowerCase();
         
         return (
           name.toLowerCase().includes(searchLower) ||
-          code.toLowerCase().includes(searchLower) ||
-          cinemaName.toLowerCase().includes(searchLower)
+          code.toLowerCase().includes(searchLower)
         );
       });
       setFilteredDiscounts(filtered);
@@ -153,7 +112,6 @@ const DiscountList = () => {
   const handleStatusChange = async (id, checked) => {
     const newStatus = checked ? 'active' : 'inactive';
     
-    console.log('Toggle status for discount:', id, 'to:', newStatus);
     setStatusLoading(prev => ({ ...prev, [id]: true }));
     
     try {
@@ -171,14 +129,10 @@ const DiscountList = () => {
         percent: currentDiscount.percent,
         dayStart: currentDiscount.dayStart,
         dayEnd: currentDiscount.dayEnd,
-        status: newStatus,
-        cinema: currentDiscount.cinema || null
+        status: newStatus
       };
 
-      console.log('Sending update data:', updateData);
       const response = await ApiService.updateDiscount(id, updateData);
-      
-      console.log('Update response:', response);
       
       if (response.success) {
         message.success(`Đã ${checked ? 'kích hoạt' : 'vô hiệu hóa'} mã khuyến mãi`);
@@ -230,10 +184,6 @@ const DiscountList = () => {
               {discount.type === 'ticket' && <Tag color="green">Vé</Tag>}
               {discount.type === 'food' && <Tag color="orange">Đồ ăn</Tag>}
               {discount.type === 'combo' && <Tag color="purple">Combo</Tag>}
-            </p>
-            <p>
-              <BankOutlined style={{ marginRight: 8 }} />
-              <strong>Rạp áp dụng:</strong> {discount.cinema ? discount.cinema.name : 'Tất cả các rạp'}
             </p>
             <p>
               <CalendarOutlined style={{ marginRight: 8 }} />
@@ -334,12 +284,6 @@ const DiscountList = () => {
         { text: 'Combo', value: 'combo' },
       ],
       onFilter: (value, record) => record.type === value,
-    },
-    {
-      title: 'Rạp áp dụng',
-      dataIndex: 'cinema',
-      key: 'cinema',
-      render: (cinema) => cinema ? cinema.name : 'Tất cả các rạp',
     },
     {
       title: 'Thời gian',
