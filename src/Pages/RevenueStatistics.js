@@ -171,15 +171,18 @@ const RevenueStatistics = () => {
       if (ticketsResponse.success && ticketsResponse.data && ticketsResponse.data.length > 0) {
         const tickets = ticketsResponse.data;
         
-        // Lọc theo trạng thái đã hoàn thành và theo khoảng thời gian được chọn
+        // Lọc theo trạng thái đã hoàn thành/sử dụng và theo khoảng thời gian được chọn
         const startDate = dateRange[0];
         const endDate = dateRange[1];
         
         const filteredTickets = tickets.filter(ticket => {
-          // Lọc theo trạng thái
+          // Lọc theo trạng thái - Bao gồm cả vé đã sử dụng (used)
           const statusMatch = ticket.status === 'completed' || 
                              ticket.status === 'confirmed' || 
-                             ticket.status === 'active';
+                             ticket.status === 'active' ||
+                             ticket.status === 'used' || // Trạng thái đã sử dụng (sau khi quét mã)
+                             ticket.status === 'scanned' || // Có thể là trạng thái đã quét
+                             ticket.status === 'checked_in'; // Có thể là trạng thái đã check-in
           
           // Lọc theo thời gian
           const ticketDate = ticket.createdAt || 

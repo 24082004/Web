@@ -461,11 +461,13 @@ const Users = () => {
                           <Tag 
                             color={
                               ticket.status === 'confirmed' || ticket.status === 'active' ? 'green' : 
+                              ticket.status === 'used' || ticket.status === 'scanned' || ticket.status === 'checked_in' ? 'blue' :
                               ticket.status === 'cancelled' || ticket.status === 'canceled' ? 'red' : 
                               ticket.status === 'pending' ? 'orange' : 'default'
                             }
                           >
                             {ticket.status === 'confirmed' || ticket.status === 'active' ? 'Đã xác nhận' :
+                             ticket.status === 'used' || ticket.status === 'scanned' || ticket.status === 'checked_in' ? 'Đã sử dụng' :
                              ticket.status === 'cancelled' || ticket.status === 'canceled' ? 'Đã hủy' :
                              ticket.status === 'pending' ? 'Chờ xác nhận' : ticket.status}
                           </Tag>

@@ -245,6 +245,12 @@ const Tickets = () => {
             color = "green";
             text = "Đã xác nhận";
             break;
+          case "used":
+          case "scanned":
+          case "checked_in":
+            color = "blue";
+            text = "Đã sử dụng";
+            break;
           case "cancelled":
           case "canceled":
             color = "red";
