@@ -92,9 +92,9 @@ const AddMovie = () => {
         <Form.Item name="censorship" label="Phân loại">
           <Select defaultValue="P">
             <Option value="P">P: Phim phù hợp với mọi lứa tuổi</Option>
-            <Option value="C13">C13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
-            <Option value="C16">C16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
-            <Option value="C18">C18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
+            <Option value="T13">T13: Phim dành cho khán giả từ 13 tuổi trở lên</Option>
+            <Option value="T16">T16: Phim dành cho khán giả từ 16 tuổi trở lên</Option>
+            <Option value="T18">T18: Phim dành cho khán giả từ 18 tuổi trở lên</Option>
           </Select>
         </Form.Item>
 
@@ -126,10 +126,6 @@ const AddMovie = () => {
           <Input placeholder="URL trailer" />
         </Form.Item>
 
-        <Form.Item name="rate" label="Đánh giá">
-          <InputNumber min={0} max={10} step={0.1} style={{ width: "100%" }} />
-        </Form.Item>
-
         <Form.Item name="storyLine" label="Nội dung phim">
           <TextArea rows={4} maxLength={2000} />
         </Form.Item>
@@ -138,8 +134,11 @@ const AddMovie = () => {
           <DatePicker style={{ width: "100%" }} />
         </Form.Item>
 
-        <Form.Item name="release_at" label="Thời gian chiếu / Rạp">
-          <Input placeholder="Ví dụ: CGV, 20:00" />
+        <Form.Item name="status" label="Trạng thái">
+          <Select defaultValue="active">
+            <Option value="active">Kích hoạt</Option>
+            <Option value="inactive">Ngừng chiếu</Option>
+          </Select>
         </Form.Item>
 
         <Form.Item>
