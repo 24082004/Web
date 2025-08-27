@@ -53,9 +53,7 @@ const FoodList = () => {
   const fetchFoods = async () => {
     setLoading(true);
     try {
-      // For admin, we need all foods (both available and unavailable)
-      // Since backend getFoods only returns available ones, we might need to call with admin params
-      const response = await ApiService.getAllFoods(); // Try this first
+      const response = await ApiService.getAllFoodsForAdmin();
       
       if (response.success) {
         console.log('Foods data:', response.data);
@@ -68,7 +66,6 @@ const FoodList = () => {
     } catch (error) {
       console.error('Error fetching foods:', error);
       
-      // Fallback: try regular getFoods if getAllFoods doesn't exist
       try {
         const fallbackResponse = await ApiService.getFoods();
         if (fallbackResponse.success) {
@@ -78,8 +75,6 @@ const FoodList = () => {
         }
       } catch (fallbackError) {
         message.error('Lỗi kết nối API: ' + error.message);
-        
-        // Final fallback data
         const fallbackData = [
           {
             _id: '1',
@@ -110,8 +105,6 @@ const FoodList = () => {
       setLoading(false);
     }
   };
-
-  // Search functionality
   const handleSearch = (value) => {
     setSearchText(value);
     if (!value) {

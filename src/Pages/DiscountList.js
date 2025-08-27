@@ -8,7 +8,6 @@ import {
   SearchOutlined, 
   EyeOutlined,
   CalendarOutlined,
-  BankOutlined,
   TagOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';

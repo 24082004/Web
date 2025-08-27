@@ -399,33 +399,24 @@ async cancelTicket(ticketId, reason) {
   });
 }
 
-// Validate ticket
 async validateTicket(ticketId) {
   return this.request(`/tickets/${ticketId}/validate`);
 }
-// Thêm các methods này vào ApiService của bạn
-
-// ============ FOOD MANAGEMENT ============
-
-// Get all foods (public - chỉ available ones)
 async getFoods() {
   return this.request('/foods');
 }
-
-// Get all foods for admin (include unavailable ones)
 async getAllFoods() {
-  // Since backend getFoods only returns available ones,
-  // we need a workaround or backend modification
-  // For now, use the same endpoint and handle in frontend
   return this.request('/foods');
 }
 
-// Get single food by ID
+async getAllFoodsForAdmin() {
+  return this.request("/foods/admin/all");
+}
+
 async getFoodById(id) {
   return this.request(`/foods/${id}`);
 }
 
-// Create new food (admin only)
 async createFood(foodData) {
   return this.request('/foods', {
     method: 'POST',
@@ -433,7 +424,6 @@ async createFood(foodData) {
   });
 }
 
-// Update food (admin only)
 async updateFood(id, foodData) {
   return this.request(`/foods/${id}`, {
     method: 'PUT',
@@ -441,14 +431,12 @@ async updateFood(id, foodData) {
   });
 }
 
-// Delete food (admin only)
 async deleteFood(id) {
   return this.request(`/foods/${id}`, {
     method: 'DELETE',
   });
 }
 
-// Upload food image (admin only)
 async uploadFoodImage(id, formData) {
   const url = `${this.baseURL}/foods/${id}/image`;
   const token = localStorage.getItem('adminToken') || localStorage.getItem('token');
