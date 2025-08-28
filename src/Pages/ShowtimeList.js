@@ -44,24 +44,34 @@ function ShowtimeList() {
   // Lấy dữ liệu phim, rạp, phòng
   useEffect(() => {
     fetchShowtimes();
+
     const fetchOptions = async () => {
       try {
         const movieRes = await apiService.getMovies();
         const cinemaRes = await apiService.getCinemas();
         const roomRes = await apiService.getRooms();
 
-        setMovies(movieRes.data || []);
+        const currentDate = new Date();
+        // Chỉ lấy những phim đã ra mắt
+        const releasedMovies = (movieRes.data || []).filter(m => {
+          return m.release_date && new Date(m.release_date) <= currentDate;
+        });
+
+        setMovies(releasedMovies);
         setCinemas(cinemaRes.data || []);
 
         // Lọc chỉ lấy phòng active
         const activeRooms = (roomRes.data || []).filter(r => r.status?.trim() === "active");
         setRooms(activeRooms);
+
       } catch (err) {
         console.error("Error fetch options:", err);
       }
     };
+
     fetchOptions();
   }, []);
+
 
 
   // Lọc dữ liệu theo input

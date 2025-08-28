@@ -24,7 +24,7 @@ import {
   EditOutlined 
 } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
-import ApiService from '../config/api';
+import ApiService from '../services/ApiService';
 import moment from 'moment';
 
 const { Search } = Input;
@@ -55,7 +55,7 @@ const EmployeeList = () => {
       const queryParams = {
         page: pagination.current,
         limit: pagination.pageSize,
-        role: 'employee', // Chỉ lấy nhân viên
+        role: 'employee',
         ...params
       };
 
@@ -153,59 +153,62 @@ const EmployeeList = () => {
     try {
       const values = await editForm.validateFields();
       setSaving(true);
-      
-      // Prepare data for API
+      const existingUsersResponse = await ApiService.getUsers({
+        search: values.name, 
+        role: 'employee',
+      });
+
+      if (existingUsersResponse.success) {
+        const duplicate = existingUsersResponse.data.find(user =>
+          (user.name === values.name || user.number_phone === values.number_phone)
+          && user._id !== editingEmployee._id
+        );
+
+        if (duplicate) {
+          console.log('Duplicate found:', duplicate);
+          if (duplicate.name === values.name) {
+            message.error('Tên nhân viên đã tồn tại. Vui lòng nhập tên khác.');
+          } else if (duplicate.number_phone === values.number_phone) {
+            message.error('Số điện thoại đã tồn tại. Vui lòng nhập số khác.');
+          }
+          setSaving(false);
+          return; // Không tiếp tục update
+        }
+      }
+
+      // 2️⃣ Chuẩn bị dữ liệu update
       const updateData = {
         name: values.name,
-        email: values.email,
         number_phone: values.number_phone,
         date_of_birth: values.date_of_birth ? values.date_of_birth.format('YYYY-MM-DD') : null,
         gender: values.gender,
-        status: values.status, // Use the selected value directly
-        role: 'employee', // Ensure role stays as employee
-        
-        // Employee specific data
+        status: values.status,
+        role: 'employee',
         employee: {
           employee_id: values.employee_id,
-          position: 'staff', // Fixed as staff
-          department: editingEmployee?.employee?.department || 'operations', // Keep existing or default
-          hire_date: editingEmployee?.employee?.hire_date || new Date().toISOString().split('T')[0], // Keep existing or today
-          work_status: 'active', // Fixed as active
+          position: 'staff',
+          department: editingEmployee?.employee?.department || 'operations',
+          hire_date: editingEmployee?.employee?.hire_date || new Date().toISOString().split('T')[0],
+          work_status: 'active',
         }
       };
 
-      // Update password if provided
       if (values.password && values.password.trim()) {
         updateData.password = values.password;
       }
 
-      console.log('Updating employee with data:', updateData); // Debug log
-
       const response = await ApiService.updateUser(editingEmployee._id, updateData);
-      
+
       if (response.success) {
         message.success('Cập nhật thông tin nhân viên thành công');
-        
-        // Force close any open DatePickers before closing modal
-        const activeElement = document.activeElement;
-        if (activeElement) {
-          activeElement.blur();
-        }
-        
-        // Close any open antd popover/dropdown
-        const popoverElements = document.querySelectorAll('.ant-picker-dropdown');
-        popoverElements.forEach(element => {
-          element.style.display = 'none';
-        });
-        
-        handleCancelEdit(); // Use this instead of manual cleanup
-        fetchEmployees(); // Refresh data
+        handleCancelEdit();
+        fetchEmployees();
       } else {
         message.error(response.error || 'Không thể cập nhật thông tin');
       }
+
     } catch (error) {
       if (error.errorFields) {
-        // Validation error from form - don't close modal
         message.error('Vui lòng kiểm tra lại thông tin form');
         return;
       }
@@ -215,6 +218,7 @@ const EmployeeList = () => {
       setSaving(false);
     }
   };
+
 
   const handleCancelEdit = () => {
     // Force close any open DatePickers
@@ -471,7 +475,20 @@ const EmployeeList = () => {
                 label="Họ và tên"
                 rules={[
                   { required: true, message: 'Vui lòng nhập họ tên!' },
-                  { min: 2, message: 'Tên phải có ít nhất 2 ký tự!' }
+                  { min: 2, message: 'Tên phải có ít nhất 2 ký tự!' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) return Promise.resolve();
+                      const duplicate = employees.find(emp =>
+                        emp.name.trim().toLowerCase() === value.trim().toLowerCase() &&
+                        emp._id !== editingEmployee?._id
+                      );
+                      if (duplicate) {
+                        return Promise.reject(new Error('Tên nhân viên đã tồn tại. Vui lòng nhập tên khác.'));
+                      }
+                      return Promise.resolve();
+                    }
+                  })
                 ]}
               >
                 <Input placeholder="Nhập họ và tên" />
@@ -498,7 +515,20 @@ const EmployeeList = () => {
                 label="Số điện thoại"
                 rules={[
                   { required: true, message: 'Vui lòng nhập số điện thoại!' },
-                  { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ!' }
+                  { pattern: /^[0-9]{10,11}$/, message: 'Số điện thoại không hợp lệ!' },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value) return Promise.resolve();
+                      const duplicate = employees.find(emp =>
+                        emp.number_phone === value &&
+                        emp._id !== editingEmployee?._id
+                      );
+                      if (duplicate) {
+                        return Promise.reject(new Error('Số điện thoại đã tồn tại. Vui lòng nhập số khác.'));
+                      }
+                      return Promise.resolve();
+                    }
+                  })
                 ]}
               >
                 <Input placeholder="Nhập số điện thoại" />

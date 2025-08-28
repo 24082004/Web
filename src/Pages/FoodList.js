@@ -259,6 +259,12 @@ const FoodList = () => {
     }
   };
 
+  const checkDuplicateFood = (name) => {
+  const filtered = foods.filter(food => editingFood ? food._id !== editingFood._id : true);
+  return filtered.some(food => food.name.trim().toLowerCase() === name.trim().toLowerCase());
+  };
+
+
   // Handle cancel modal
   const handleCancelModal = () => {
     setIsModalVisible(false);
@@ -531,12 +537,20 @@ const FoodList = () => {
             label="Tên sản phẩm"
             rules={[
               { required: true, message: 'Vui lòng nhập tên sản phẩm!' },
-              { min: 2, message: 'Tên sản phẩm phải có ít nhất 2 ký tự!' }
+              { min: 2, message: 'Tên sản phẩm phải có ít nhất 2 ký tự!' },
+              {
+                validator: (_, value) => {
+                  if (!value) return Promise.resolve();
+                  if (checkDuplicateFood(value)) return Promise.reject(new Error('Tên món ăn/đồ uống đã tồn tại'));
+                  return Promise.resolve();
+                }
+              }
             ]}
+            validateTrigger={['onChange', 'onBlur']}
           >
             <Input placeholder="Nhập tên sản phẩm" />
           </Form.Item>
-
+          
           <Form.Item
             name="price"
             label="Giá (VND)"
