@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Table, Button, Space, Typography, Avatar, message, Input, Modal, Form } from 'antd';
+import { Table, Button, Space, Avatar, message, Input, Modal, Form } from 'antd';
 import { PlusOutlined, ReloadOutlined, UserOutlined, EditOutlined, SearchOutlined } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
-import ApiService from '../services/ApiService'; // Adjust the import path as necessary
+import ApiService from '../services/ApiService';
 
 const DirectorList = () => {
   const [directors, setDirectors] = useState([]);
@@ -19,8 +19,6 @@ const DirectorList = () => {
   const [editLoading, setEditLoading] = useState(false);
   const [form] = Form.useForm();
 
-  // Fetch directors from API
-// Thay thế function fetchDirectors trong DirectorList component:
 
 const fetchDirectors = async () => {
   console.log('=== DEBUG: Starting fetchDirectors ===');

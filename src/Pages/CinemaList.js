@@ -1,4 +1,3 @@
-// src/Pages/CinemaList.js
 import React, { useEffect, useState } from "react";
 import { Table, Button, Space, Typography, message, Input, Modal, Form } from "antd";
 import { ReloadOutlined, EditOutlined, EnvironmentOutlined, PlusOutlined } from "@ant-design/icons";
@@ -11,7 +10,6 @@ const CinemaList = () => {
   const [cinemas, setCinemas] = useState([]);
   const [filteredCinemas, setFilteredCinemas] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [statusLoading, setStatusLoading] = useState({});
   const [searchText, setSearchText] = useState('');
 
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -19,7 +17,6 @@ const CinemaList = () => {
   const [isAdding, setIsAdding] = useState(false);
   const [form] = Form.useForm();
 
-  // --- Fetch danh sách rạp ---
   const fetchCinemas = async () => {
     setLoading(true);
     try {
@@ -38,7 +35,6 @@ const CinemaList = () => {
 
   useEffect(() => { fetchCinemas(); }, []);
 
-  // --- Search/filter admin ---
   const handleSearch = (value) => {
     setSearchText(value);
     if (!value) setFilteredCinemas(cinemas);
@@ -46,34 +42,6 @@ const CinemaList = () => {
       c.name.toLowerCase().includes(value.toLowerCase()) ||
       c.address.toLowerCase().includes(value.toLowerCase())
     ));
-  };
-
-  // --- Thay đổi trạng thái ---
-  const handleStatusChange = async (id, newStatus) => {
-    const cinema = cinemas.find(c => c._id === id);
-    if (!cinema) return;
-
-    const updatedCinema = { ...cinema, status: newStatus };
-
-    setStatusLoading(prev => ({ ...prev, [id]: true }));
-
-    try {
-      const response = await ApiService.updateCinema(id, updatedCinema);
-
-      if (response.success) {
-        message.success(`Đã ${newStatus === 'active' ? 'kích hoạt' : 'vô hiệu hóa'} rạp phim`);
-        const updatedList = cinemas.map(c => c._id === id ? { ...c, status: newStatus } : c);
-        setCinemas(updatedList);
-        setFilteredCinemas(updatedList);
-      } else {
-        message.error(response.message || 'Cập nhật trạng thái thất bại');
-      }
-
-    } catch (err) {
-      message.error('Lỗi khi cập nhật trạng thái');
-    } finally {
-      setStatusLoading(prev => ({ ...prev, [id]: false }));
-    }
   };
 
   // --- Kiểm tra trùng ---

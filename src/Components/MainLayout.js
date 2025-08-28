@@ -153,7 +153,7 @@ const MainLayout = ({ children }) => {
               <Link to="/admin/actors">Quản lý diễn viên</Link>
             </Menu.Item>
             <Menu.Item key="2-5" icon={<TagsOutlined />}>
-              <Link to="/admin/genres">Thể loại phim</Link>
+              <Link to="/admin/genres">Quản lý thể loại phim</Link>
             </Menu.Item>
           </SubMenu>
           <Menu.Item key="3" icon={<UserOutlined />}>
@@ -165,19 +165,19 @@ const MainLayout = ({ children }) => {
           </Menu.Item>
           
           <Menu.Item key="5" icon={<CoffeeOutlined />}>
-            <Link to="/admin/foods">Món ăn & Đồ uống</Link>
+            <Link to="/admin/foods">Quản lý dịch vụ</Link>
           </Menu.Item>
           
           <Menu.Item key="6" icon={<BankOutlined />}>
-            <Link to="/admin/cinemas">Rạp phim</Link>
+            <Link to="/admin/cinemas">Quản lý rạp phim</Link>
           </Menu.Item>
           
           <Menu.Item key="7" icon={<PercentageOutlined />}>
-            <Link to="/admin/discounts">Khuyến mãi</Link>
+            <Link to="/admin/discounts">Quản lý khuyến mãi</Link>
           </Menu.Item>
           
           <Menu.Item key="8" icon={<BorderOuterOutlined />}>
-            <Link to="/admin/rooms">Phòng chiếu</Link>
+            <Link to="/admin/rooms">Quản lý phòng chiếu</Link>
           </Menu.Item>
           
           <Menu.Item key="9" icon={<AppstoreOutlined />}>
@@ -185,11 +185,11 @@ const MainLayout = ({ children }) => {
           </Menu.Item>
 
           <Menu.Item key="10" icon={<UnorderedListOutlined />}>
-            <Link to="/admin/tickets">Danh sách vé</Link>
+            <Link to="/admin/tickets">Quản lý vé</Link>
           </Menu.Item>
 
           <Menu.Item key="11" icon={<FieldTimeOutlined />}>
-            <Link to="/admin/showtimes">Danh suất chiếu</Link>
+            <Link to="/admin/showtimes">Quản lý suất chiếu</Link>
           </Menu.Item>
 
         </Menu>

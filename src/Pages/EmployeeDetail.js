@@ -25,7 +25,7 @@ import {
   HistoryOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
-import ApiService from '../config/api';
+import ApiService from '../services/ApiService';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
@@ -63,14 +63,10 @@ const EmployeeDetail = () => {
     }
   };
 
-  // Fetch ticket history (optional - nếu có API tracking nhân viên bán vé)
   const fetchTicketHistory = async () => {
     try {
       setHistoryLoading(true);
-      // Giả sử có API lấy lịch sử bán vé của nhân viên
-      // const response = await ApiService.getTicketsByEmployee(id);
-      // setTicketHistory(response.data || []);
-      setTicketHistory([]); // Tạm thời empty
+      setTicketHistory([]);
     } catch (error) {
       console.error('Error fetching ticket history:', error);
     } finally {

@@ -17,7 +17,7 @@ import {
   BankOutlined,
 } from "@ant-design/icons";
 import moment from "moment";
-import ApiService from "../config/api";
+import ApiService from "../config/api"; 
 
 const { Title } = Typography;
 

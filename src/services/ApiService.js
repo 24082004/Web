@@ -359,6 +359,11 @@ class ApiService {
     return this.request(endpoint);
   }
 
+  async getRooms(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/rooms${queryString ? `?${queryString}` : ""}`);
+  }
+
   async getRoomById(id) {
     return this.request(`/rooms/${id}`);
   }
@@ -370,6 +375,13 @@ class ApiService {
     });
   }
 
+  async createRoom(roomData) {
+    return this.request("/rooms", {
+      method: "POST",
+      body: JSON.stringify(roomData),
+    });
+  }
+
   async updateRoom(id, roomData) {
     return this.request(`/rooms/${id}`, {
       method: "PUT",
@@ -377,8 +389,27 @@ class ApiService {
     });
   }
 
+  async updateRoom(id, roomData) {
+    return this.request(`/rooms/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(roomData),
+    });
+  }
+
   async deleteRoom(id) {
     return this.request(`/rooms/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async deleteRoom(id) {
+    return this.request(`/rooms/${id}`, {
+      method: "DELETE",
+    });
+  }
+
+  async deleteAllSeatsInRoom(roomId) {
+    return this.request(`/seats/room/${roomId}`, {
       method: "DELETE",
     });
   }
@@ -424,22 +455,60 @@ class ApiService {
     });
   }
 
-  async deleteSeat(id) {
+  async createSeat(seatData) {
+    return this.request("/seats", {
+      method: "POST",
+      body: JSON.stringify(seatData),
+    });
+  }
+
+  async createBulkSeats(seatsData) {
+    return this.request("/seats/bulk", {
+      method: "POST",
+      body: JSON.stringify({ seats: seatsData }),
+    });
+  }
+
+  async autoGenerateSeats(roomId, configData) {
+    return this.request(`/seats/auto-generate/${roomId}`, {
+      method: "POST",
+      body: JSON.stringify(configData),
+    });
+  }
+
+async getSeatBookingStatus(showtimeId) {
+    return this.request(`/tickets/seat-status/${showtimeId}`);
+  }
+
+
+  async updateSeat(id, seatData) {
     return this.request(`/seats/${id}`, {
-      method: "DELETE",
+      method: "PUT",
+      body: JSON.stringify(seatData),
     });
   }
 
-  async deleteAllSeatsInRoom(roomId) {
-    return this.request(`/seats/room/${roomId}`, {
-      method: "DELETE",
-    });
+
+
+
+  // ============ SHOWTIME MANAGEMENT ===========
+
+  async getShowtimesByRoom(roomId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(
+      `/showtimes/room/${roomId}${queryString ? `?${queryString}` : ""}`
+    );
+  }
+  async getShowtimeStatistics(showtimeId) {
+    return this.request(`/statistics/showtimes/${showtimeId}`);
+  }
+  async getTicketsByShowtime(showtimeId) {
+    return this.request(`/tickets/showtime/${showtimeId}`);
   }
 
-  // ============ SHOWTIME MANAGEMENT ============
   async getShowtimes(params = {}) {
     const queryString = new URLSearchParams(params).toString();
-    return this.request(`/showtimes${queryString ? `?${queryString}` : ''}`);
+    return this.request(`/showtimes${queryString ? `?${queryString}` : ""}`);
   }
 
   async getShowtimeById(id) {
@@ -447,22 +516,22 @@ class ApiService {
   }
 
   async createShowtime(showtimeData) {
-    return this.request('/showtimes', {
-      method: 'POST',
+    return this.request("/showtimes", {
+      method: "POST",
       body: JSON.stringify(showtimeData),
     });
   }
 
   async updateShowtime(id, showtimeData) {
     return this.request(`/showtimes/${id}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify(showtimeData),
     });
   }
 
   async deleteShowtime(id) {
     return this.request(`/showtimes/${id}`, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 
@@ -470,25 +539,21 @@ class ApiService {
     return this.request(`/showtimes/movie/${movieId}`);
   }
 
-  async getShowtimesByRoom(roomId, params = {}) {
-    const queryString = new URLSearchParams(params).toString();
-    return this.request(`/showtimes/room/${roomId}${queryString ? `?${queryString}` : ''}`);
-  }
 
   async getShowtimesByDate(date) {
     return this.request(`/showtimes/date/${date}`);
   }
 
   async generateShowtimes(generateData) {
-    return this.request('/showtimes/generate', {
-      method: 'POST',
+    return this.request("/showtimes/generate", {
+      method: "POST",
       body: JSON.stringify(generateData),
     });
   }
 
   async deleteShowtimesByDateRange(deleteData) {
-    return this.request('/showtimes/bulk', {
-      method: 'DELETE',
+    return this.request("/showtimes/bulk", {
+      method: "DELETE",
       body: JSON.stringify(deleteData),
     });
   }
@@ -507,9 +572,6 @@ class ApiService {
     return this.request("/tickets/stats");
   }
 
-  async getTicketsByShowtime(showtimeId) {
-    return this.request(`/tickets/showtime/${showtimeId}`);
-  }
 
   async getTicketsByEmail(email) {
     return this.request(`/tickets/email/${email}`);
