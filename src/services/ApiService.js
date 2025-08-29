@@ -833,6 +833,18 @@ const queryString = new URLSearchParams(params).toString();
   async getCustomRangeStats(startDate, endDate) {
     return this.getDetailedStats({ startDate, endDate });
   }
+
+  async getScanHistory(params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets/scan-history${queryString ? `?${queryString}` : ''}`);
+  }
+
+  // Lấy lịch sử quét vé của nhân viên cụ thể (Admin only)
+  async getEmployeeScanHistory(employeeId, params = {}) {
+    const queryString = new URLSearchParams(params).toString();
+    return this.request(`/tickets/employee-scan-history/${employeeId}${queryString ? `?${queryString}` : ''}`);
+  }
+
 }
 
 export default new ApiService();

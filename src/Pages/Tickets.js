@@ -172,14 +172,20 @@ const Tickets = () => {
       title: "Giờ chiếu",
       key: "showTime",
       render: (_, record) => {
-        const showTime = record.showTime || 
-                        record.time?.startTime || 
-                        record.time?.time || 
-                        record.showtime?.startTime || 
-                        record.showtime?.time ||
-                        record.startTime;
-        
-        return showTime || "N/A";
+        const showTimeRaw = record.showTime || 
+                            record.time?.startTime || 
+                            record.time?.time || 
+                            record.showtime?.startTime || 
+                            record.showtime?.time ||
+                            record.startTime;
+
+        if (!showTimeRaw) return "N/A";
+
+        // Nếu là ISO string hoặc timestamp → format
+        const showTimeMoment = moment(showTimeRaw);
+        if (!showTimeMoment.isValid()) return showTimeRaw; // fallback
+
+        return showTimeMoment.format("HH:mm"); // chỉ giờ:phút
       },
     },
     {

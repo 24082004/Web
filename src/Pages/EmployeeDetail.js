@@ -13,7 +13,9 @@ import {
   Divider,
   Space,
   Table,
-  Empty
+  Empty,
+  Tabs,
+  Statistic
 } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -22,21 +24,31 @@ import {
   PhoneOutlined,
   CalendarOutlined,
   IdcardOutlined,
-  HistoryOutlined
+  HistoryOutlined,
+  ScanOutlined,
+  TrophyOutlined,
+  CheckCircleOutlined
 } from '@ant-design/icons';
 import { useParams, useNavigate } from 'react-router-dom';
 import ApiService from '../services/ApiService';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 const EmployeeDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [employee, setEmployee] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [ticketHistory, setTicketHistory] = useState([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const [scanHistory, setScanHistory] = useState([]);
+  const [scanLoading, setScanLoading] = useState(false);
+  const [scanStats, setScanStats] = useState({
+    totalScanned: 0,
+    todayScanned: 0,
+    thisMonthScanned: 0,
+    validScanned: 0
+  });
 
   // Fetch employee details
   const fetchEmployee = async () => {
@@ -46,9 +58,9 @@ const EmployeeDetail = () => {
       
       if (response.success) {
         setEmployee(response.data);
-        // Nếu là nhân viên, có thể lấy lịch sử bán vé
+        // Nếu là nhân viên, lấy lịch sử quét vé
         if (response.data.role === 'employee') {
-          fetchTicketHistory();
+          fetchScanHistory();
         }
       } else {
         message.error(response.error || 'Không thể lấy thông tin nhân viên');
@@ -63,14 +75,82 @@ const EmployeeDetail = () => {
     }
   };
 
-  const fetchTicketHistory = async () => {
+  // ✅ NEW: Fetch scan history for this employee
+  const fetchScanHistory = async () => {
     try {
-      setHistoryLoading(true);
-      setTicketHistory([]);
+      setScanLoading(true);
+      
+      console.log('Fetching scan history for employee ID:', id);
+      console.log('ApiService baseURL:', ApiService.getBaseURL());
+      
+      // ✅ SỬ DỤNG ApiService thay vì hardcode URL
+      let data;
+      
+      try {
+        // Thử endpoint admin trước với ApiService method mới
+        console.log('Trying admin endpoint...');
+        data = await ApiService.getEmployeeScanHistory(id);
+        console.log('Admin endpoint success:', data);
+      } catch (adminError) {
+        console.error('Admin endpoint failed:', adminError);
+        
+        // ✅ FALLBACK: Lấy tất cả scan history và filter client-side
+        console.log('Trying fallback: get all scan history and filter...');
+        try {
+          const allScanData = await ApiService.getScanHistory();
+          console.log('All scan history:', allScanData);
+          
+          // Filter theo employeeId
+          const filteredHistory = (allScanData.data || []).filter(item => 
+            item.scannedBy === id ||
+item.employeeId === id ||
+            item.scannedByEmployeeId === id
+          );
+          
+          console.log('Filtered history for employee:', filteredHistory);
+          data = { data: filteredHistory };
+        } catch (fallbackError) {
+          console.error('Fallback failed:', fallbackError);
+          setScanHistory([]);
+          message.error('Không thể tải lịch sử quét vé. Kiểm tra kết nối server.');
+          return;
+        }
+      }
+
+      if (data && data.data) {
+        setScanHistory(data.data || []);
+        
+        // Tính toán statistics
+        const history = data.data || [];
+        const now = new Date();
+        const today = now.toISOString().split('T')[0];
+        const thisMonth = now.getMonth();
+        const thisYear = now.getFullYear();
+
+        const stats = {
+          totalScanned: history.length,
+          todayScanned: history.filter(item => 
+            new Date(item.scanTime).toISOString().split('T')[0] === today
+          ).length,
+          thisMonthScanned: history.filter(item => {
+            const scanDate = new Date(item.scanTime);
+            return scanDate.getMonth() === thisMonth && scanDate.getFullYear() === thisYear;
+          }).length,
+          validScanned: history.filter(item => item.status === 'used').length
+        };
+
+        console.log('Calculated stats:', stats);
+        setScanStats(stats);
+      } else {
+        console.log('No scan history data found');
+        setScanHistory([]);
+      }
     } catch (error) {
-      console.error('Error fetching ticket history:', error);
+      console.error('Error fetching scan history:', error);
+      setScanHistory([]);
+      message.error('Lỗi khi tải lịch sử quét vé');
     } finally {
-      setHistoryLoading(false);
+      setScanLoading(false);
     }
   };
 
@@ -101,8 +181,8 @@ const EmployeeDetail = () => {
     }
   };
 
-  // Columns for ticket history table
-  const ticketColumns = [
+  // ✅ NEW: Columns for scan history table
+  const scanHistoryColumns = [
     {
       title: 'STT',
       key: 'index',
@@ -113,38 +193,76 @@ const EmployeeDetail = () => {
       title: 'Mã vé',
       dataIndex: 'orderId',
       key: 'orderId',
+      render: (orderId) => (
+        <Text code style={{ fontSize: '12px' }}>
+          {orderId}
+        </Text>
+      ),
     },
     {
       title: 'Phim',
-      dataIndex: 'movieName',
-      key: 'movieName',
+      dataIndex: 'movieTitle',
+      key: 'movieTitle',
+      render: (title) => (
+        <Text ellipsis style={{ maxWidth: 150 }}>
+          {title || 'N/A'}
+        </Text>
+      ),
     },
     {
       title: 'Khách hàng',
-      key: 'customer',
-      render: (_, record) => record.userInfo?.fullName || 'N/A',
+      dataIndex: 'customerName',
+key: 'customerName',
+      render: (name) => (
+        <Text ellipsis style={{ maxWidth: 120 }}>
+          {name || 'N/A'}
+        </Text>
+      ),
     },
     {
-      title: 'Tổng tiền',
-      dataIndex: 'totalPrice',
-      key: 'totalPrice',
-      render: (price) => `${price?.toLocaleString() || 0}đ`,
+      title: 'Ghế',
+      dataIndex: 'seatNumber',
+      key: 'seatNumber',
+      render: (seats) => (
+        <Tag color="blue" style={{ fontSize: '11px' }}>
+          {seats || 'N/A'}
+        </Tag>
+      ),
     },
     {
-      title: 'Ngày bán',
-      dataIndex: 'createdAt',
-      key: 'createdAt',
-      render: (date) => moment(date).format('DD/MM/YYYY HH:mm'),
+      title: 'Suất chiếu',
+      dataIndex: 'showTime',
+      key: 'showTime',
+      render: (showTime) => (
+        <Text style={{ fontSize: '12px' }}>
+          {showTime && showTime !== 'N/A' ? 
+            moment(showTime).format('DD/MM HH:mm') : 'N/A'}
+        </Text>
+      ),
+    },
+    {
+      title: 'Thời gian quét',
+      dataIndex: 'scanTime',
+      key: 'scanTime',
+      render: (scanTime) => (
+        <div>
+          <div>{moment(scanTime).format('DD/MM/YYYY')}</div>
+          <Text type="secondary" style={{ fontSize: '11px' }}>
+            {moment(scanTime).format('HH:mm:ss')}
+          </Text>
+        </div>
+      ),
     },
     {
       title: 'Trạng thái',
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
-        <Tag color={status === 'completed' ? 'green' : status === 'cancelled' ? 'red' : 'orange'}>
-          {status === 'completed' ? 'Hoàn thành' : 
-           status === 'cancelled' ? 'Đã hủy' : 
-           status === 'pending_payment' ? 'Chờ thanh toán' : status}
+        <Tag 
+          color={status === 'used' ? 'green' : 'orange'}
+          icon={status === 'used' ? <CheckCircleOutlined /> : null}
+        >
+          {status === 'used' ? 'Đã sử dụng' : 'Chưa xác định'}
         </Tag>
       ),
     },
@@ -205,7 +323,7 @@ const EmployeeDetail = () => {
               <Text type="secondary">
                 ID: {employee._id?.slice(-8)}
               </Text>
-              {employee.employee?.employee_id && (
+{employee.employee?.employee_id && (
                 <div style={{ marginTop: 4 }}>
                   <Text strong>
                     Mã NV: {employee.employee.employee_id}
@@ -245,6 +363,35 @@ const EmployeeDetail = () => {
 
             <Divider />
 
+            {/* ✅ NEW: Scan Statistics */}
+            {employee.role === 'employee' && (
+              <>
+                <div style={{ marginBottom: 16 }}>
+                  <Text strong style={{ display: 'flex', alignItems: 'center' }}>
+                    <ScanOutlined style={{ marginRight: 8 }} />
+                    Thống kê quét vé
+                  </Text>
+                </div>
+                <Row gutter={8}>
+                  <Col span={12}>
+                    <Statistic
+                      title="Tổng quét"
+                      value={scanStats.totalScanned}
+                      valueStyle={{ fontSize: '18px', color: '#1890ff' }}
+                    />
+                  </Col>
+                  <Col span={12}>
+                    <Statistic
+                      title="Hôm nay"
+                      value={scanStats.todayScanned}
+                      valueStyle={{ fontSize: '18px', color: '#52c41a' }}
+                    />
+                  </Col>
+                </Row>
+                <Divider />
+              </>
+            )}
+
             <div style={{ textAlign: 'center' }}>
               <Button
                 type="default"
@@ -260,7 +407,7 @@ const EmployeeDetail = () => {
 
         {/* Right Column - Detailed Info */}
         <Col xs={24} lg={16}>
-          {/* Account Status */}
+{/* Account Status */}
           <Card title="Trạng thái tài khoản" style={{ marginBottom: 24 }}>
             <Row gutter={16}>
               <Col span={12}>
@@ -320,28 +467,114 @@ const EmployeeDetail = () => {
             </Descriptions>
           </Card>
 
-          {/* Work History / Statistics */}
+          {/* ✅ NEW: Activity History with Tabs */}
           <Card 
             title={
               <Space>
                 <HistoryOutlined />
                 <span>Lịch sử hoạt động</span>
-              </Space>
+</Space>
             }
           >
-            {ticketHistory.length > 0 ? (
-              <Spin spinning={historyLoading}>
-                <Table
-                  columns={ticketColumns}
-                  dataSource={ticketHistory}
-                  rowKey="_id"
-                  pagination={{ pageSize: 5 }}
-                  size="small"
-                />
-              </Spin>
+            {employee.role === 'employee' ? (
+              <Tabs defaultActiveKey="scan_history">
+                <TabPane 
+                  tab={
+                    <span>
+                      <ScanOutlined />
+                      Lịch sử quét vé ({scanHistory.length})
+                    </span>
+                  } 
+                  key="scan_history"
+                >
+                  <Spin spinning={scanLoading}>
+                    {scanHistory.length > 0 ? (
+                      <>
+                        {/* Statistics Cards */}
+                        <Row gutter={16} style={{ marginBottom: 16 }}>
+                          <Col xs={12} sm={6}>
+                            <Card size="small" style={{ textAlign: 'center' }}>
+                              <Statistic
+                                title="Tổng quét"
+                                value={scanStats.totalScanned}
+                                prefix={<ScanOutlined />}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={6}>
+                            <Card size="small" style={{ textAlign: 'center' }}>
+                              <Statistic
+                                title="Hôm nay"
+                                value={scanStats.todayScanned}
+                                prefix={<TrophyOutlined />}
+                                valueStyle={{ color: '#3f8600' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={6}>
+                            <Card size="small" style={{ textAlign: 'center' }}>
+                              <Statistic
+                                title="Tháng này"
+                                value={scanStats.thisMonthScanned}
+                                prefix={<CalendarOutlined />}
+                                valueStyle={{ color: '#1890ff' }}
+                              />
+                            </Card>
+                          </Col>
+                          <Col xs={12} sm={6}>
+                            <Card size="small" style={{ textAlign: 'center' }}>
+                              <Statistic
+                                title="Hợp lệ"
+                                value={scanStats.validScanned}
+                                prefix={<CheckCircleOutlined />}
+                                valueStyle={{ color: '#52c41a' }}
+                              />
+                            </Card>
+                          </Col>
+                        </Row>
+
+                        {/* Scan History Table */}
+                        <Table
+                          columns={scanHistoryColumns}
+                          dataSource={scanHistory}
+                          rowKey="_id"
+                          pagination={{
+pageSize: 10,
+                            showSizeChanger: true,
+                            showTotal: (total, range) => 
+                              `${range[0]}-${range[1]} của ${total} vé đã quét`
+                          }}
+                          size="small"
+                          scroll={{ x: 800 }}
+                        />
+                      </>
+                    ) : (
+                      <Empty 
+                        description="Chưa có lịch sử quét vé nào"
+                        style={{ margin: '40px 0' }}
+                      />
+                    )}
+                  </Spin>
+                </TabPane>
+                
+                <TabPane 
+                  tab={
+                    <span>
+                      <HistoryOutlined />
+                      Hoạt động khác
+                    </span>
+                  } 
+                  key="other_activities"
+                >
+                  <Empty 
+                    description="Chưa có dữ liệu hoạt động khác"
+                    style={{ margin: '40px 0' }}
+                  />
+                </TabPane>
+              </Tabs>
             ) : (
               <Empty 
-                description="Chưa có lịch sử hoạt động"
+                description="Không có lịch sử hoạt động cho vai trò này"
                 style={{ margin: '40px 0' }}
               />
             )}
