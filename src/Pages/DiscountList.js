@@ -336,14 +336,6 @@ const DiscountList = () => {
       width: 100,
       render: (_, record) => (
         <Space>
-          <Button 
-            type="primary" 
-            size="middle"
-            icon={<EyeOutlined />}
-            onClick={() => handleViewDetail(record)}
-          >
-            Xem
-          </Button>
           <Link to={`/admin/discount/edit/${record._id}`}>
             <Button 
               type="primary" 

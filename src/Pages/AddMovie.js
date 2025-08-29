@@ -70,7 +70,7 @@ const AddMovie = () => {
           label="Thời lượng (HH:MM:SS hoặc số phút)"
           rules={[{ required: true, message: "Vui lòng nhập thời lượng" }]}
         >
-          <Input placeholder="Ví dụ: 02:15:00 hoặc 135" />
+          <Input placeholder="Ví dụ: 02:15:00" />
         </Form.Item>
 
         <Form.Item

@@ -167,15 +167,6 @@ const AdminLogin = () => {
             )}
           </button>
 
-          {/* Test Login Button */}
-          <button
-            onClick={handleTestLogin}
-            disabled={loading}
-            className="w-full bg-white/5 border border-white/10 text-gray-300 py-3 rounded-xl font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-          >
-            Điền thông tin test
-          </button>
-
           {/* Logout Button (for testing) */}
           {AuthService.isAdminAuthenticated() && (
             <button
