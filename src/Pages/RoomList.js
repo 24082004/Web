@@ -89,24 +89,31 @@ const RoomList = () => {
   // ===== Search & Filter =====
   const handleSearch = (value) => {
     setSearchText(value);
-    filterRooms(value);
+    filterRooms(value, selectedCinema);
   };
 
   const handleCinemaChange = (value) => {
     setSelectedCinema(value);
-    fetchRooms(value === 'all' ? null : value);
+    filterRooms(searchText, value);
   };
 
-  const filterRooms = (text) => {
+  const filterRooms = (text, cinemaId = selectedCinema) => {
     let filtered = [...rooms];
+    
+    if (cinemaId && cinemaId !== 'all') {
+      filtered = filtered.filter(room => room.cinema?._id === cinemaId);
+    }
+
     if (text) {
       filtered = filtered.filter(room =>
         room.name.toLowerCase().includes(text.toLowerCase()) ||
         (room.cinema && room.cinema.name.toLowerCase().includes(text.toLowerCase()))
       );
     }
+
     setFilteredRooms(filtered);
   };
+
 
   // ===== Validate trùng tên =====
   const isDuplicateRoomName = (name, cinemaId, currentRoomId = null) => {
