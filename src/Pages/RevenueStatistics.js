@@ -163,7 +163,8 @@ const RevenueStatistics = () => {
     try {
       setLoading(true);
       
-      // Sử dụng API có sẵn từ màn hình danh sách vé
+      // Get all tickets for statistics
+      console.log('Fetching tickets with params:', { limit: 1000 });
       const ticketsResponse = await apiService.getAllTickets({
         limit: 1000 // Lấy nhiều vé để thống kê
       });
@@ -171,40 +172,48 @@ const RevenueStatistics = () => {
       if (ticketsResponse.success && ticketsResponse.data && ticketsResponse.data.length > 0) {
         const tickets = ticketsResponse.data;
         
-        // Lọc theo trạng thái đã hoàn thành/sử dụng và theo khoảng thời gian được chọn
+        // Get date range for filtering
         const startDate = dateRange[0];
         const endDate = dateRange[1];
         
         const filteredTickets = tickets.filter(ticket => {
-          // Lọc theo trạng thái - Bao gồm cả vé đã sử dụng (used)
+          // Filter by status
           const statusMatch = ticket.status === 'completed' || 
                              ticket.status === 'confirmed' || 
                              ticket.status === 'active' ||
-                             ticket.status === 'used' || // Trạng thái đã sử dụng (sau khi quét mã)
-                             ticket.status === 'scanned' || // Có thể là trạng thái đã quét
-                             ticket.status === 'checked_in'; // Có thể là trạng thái đã check-in
+                             ticket.status === 'used' || 
+                             ticket.status === 'success';
           
-          // Lọc theo thời gian
+          // Filter by date
           const ticketDate = ticket.createdAt || 
                             ticket.bookingTime || 
                             ticket.date ||
-                            ticket.confirmedAt;
+                            ticket.confirmedAt ||
+                            ticket.showDate;
           
           let dateMatch = true;
           if (ticketDate) {
             const tDate = dayjs(ticketDate);
-            dateMatch = tDate.isAfter(startDate.subtract(1, 'day')) && 
-                       tDate.isBefore(endDate.add(1, 'day'));
+            const startOfDay = startDate.startOf('day');
+            const endOfDay = endDate.endOf('day');
+            
+            const ticketTimestamp = tDate.valueOf();
+            const startTimestamp = startOfDay.valueOf();
+            const endTimestamp = endOfDay.valueOf();
+            
+            dateMatch = ticketTimestamp >= startTimestamp && ticketTimestamp <= endTimestamp;
+          } else {
+            dateMatch = false;
           }
           
-          // Lọc theo phim (nếu có chọn phim cụ thể)
+          // Filter by movie
           let movieMatch = true;
           if (selectedMovie !== 'all') {
             const movieId = ticket.movie?._id || ticket.movie;
             movieMatch = movieId === selectedMovie;
           }
           
-          // Lọc theo rạp (nếu có chọn rạp cụ thể)
+          // Filter by cinema
           let cinemaMatch = true;
           if (selectedCinema !== 'all') {
             const cinemaId = ticket.cinema?._id || ticket.cinema;
@@ -214,17 +223,18 @@ const RevenueStatistics = () => {
           return statusMatch && dateMatch && movieMatch && cinemaMatch;
         });
         
-        // Tính toán thống kê
+        // Calculate statistics
         let totalRevenue = 0;
         const movieStats = {};
         const cinemaStats = {};
         const dailyStats = {};
         
         filteredTickets.forEach(ticket => {
-          // Lấy số tiền từ nhiều trường khác nhau (như trong Tickets.js)
-          const revenue = ticket.total || 
-                         ticket.totalPrice || 
+          // Get revenue from various fields
+          const revenue = ticket.finalRevenue ||
                          ticket.totalAmount ||
+                         ticket.total || 
+                         ticket.totalPrice || 
                          ticket.price || 
                          ticket.amount || 
                          ticket.seatTotalPrice ||
@@ -232,6 +242,7 @@ const RevenueStatistics = () => {
           
           totalRevenue += revenue;
           
+          // Movie statistics
           const movieName = ticket.movie?.name || 
                            ticket.movie?.title || 
                            ticket.movieName || 
@@ -244,7 +255,7 @@ const RevenueStatistics = () => {
           movieStats[movieName].revenue += revenue;
           movieStats[movieName].tickets += 1;
           
-          // Thống kê theo rạp
+          // Cinema statistics
           const cinemaName = ticket.cinema?.name || 
                             ticket.cinemaName || 
                             'Rạp không xác định';
@@ -255,7 +266,7 @@ const RevenueStatistics = () => {
           cinemaStats[cinemaName].revenue += revenue;
           cinemaStats[cinemaName].tickets += 1;
           
-          // Thống kê theo ngày
+          // Daily statistics
           const ticketDate = ticket.createdAt || 
                             ticket.bookingTime || 
                             ticket.date ||
