@@ -7,7 +7,7 @@ import {
   Card,
   Row,
   Col,
-  Input,
+  Select,
   message,
   Spin,
 } from "antd";
@@ -20,37 +20,45 @@ import moment from "moment";
 import ApiService from "../config/api"; 
 
 const { Title } = Typography;
+const { Option } = Select;
 
 const Tickets = () => {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState("");
+  const [selectedMovie, setSelectedMovie] = useState(null);
+  const [selectedCinema, setSelectedCinema] = useState(null);
+  const [movies, setMovies] = useState([]);
+  const [cinemas, setCinemas] = useState([]);
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
     total: 0,
   });
 
-  const fetchTickets = async (params = {}) => {
+  const fetchTickets = async () => {
     try {
       setLoading(true);
-      const queryParams = {
-        page: pagination.current,
-        limit: pagination.pageSize,
-        ...params,
-      };
+      const res = await ApiService.getAllTickets({
+        page: 1,
+        limit: 1000, // lấy đủ dữ liệu để lọc frontend
+      });
 
-      if (searchText) {
-        queryParams.search = searchText;
-      }
-
-      const res = await ApiService.getAllTickets(queryParams);
       if (res.success) {
         setTickets(res.data);
         setPagination((prev) => ({
           ...prev,
           total: res.total,
         }));
+
+        // Lấy danh sách movie & cinema từ tickets
+        const moviesSet = new Set();
+        const cinemasSet = new Set();
+        res.data.forEach((t) => {
+          if (t.movie?._id) moviesSet.add(JSON.stringify({ _id: t.movie._id, name: t.movie.name || t.movie.title }));
+          if (t.cinema?._id) cinemasSet.add(JSON.stringify({ _id: t.cinema._id, name: t.cinema.name }));
+        });
+        setMovies(Array.from(moviesSet).map((v) => JSON.parse(v)));
+        setCinemas(Array.from(cinemasSet).map((v) => JSON.parse(v)));
       } else {
         message.error(res.error || "Không thể lấy danh sách vé");
       }
@@ -64,30 +72,21 @@ const Tickets = () => {
 
   useEffect(() => {
     fetchTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    fetchTickets();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagination.current, pagination.pageSize]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (pagination.current === 1) {
-        fetchTickets();
-      } else {
-        setPagination((prev) => ({ ...prev, current: 1 }));
-      }
-    }, 500);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchText]);
-
   const handleRefresh = () => {
+    setSelectedMovie(null);
+    setSelectedCinema(null);
     fetchTickets();
     message.success("Đã làm mới danh sách vé");
   };
+
+  // Lọc tickets phía frontend
+  const filteredTickets = tickets.filter((t) => {
+    const matchMovie = selectedMovie ? t.movie?._id === selectedMovie : true;
+    const matchCinema = selectedCinema ? t.cinema?._id === selectedCinema : true;
+    return matchMovie && matchCinema;
+  });
 
   const columns = [
     {
@@ -103,24 +102,20 @@ const Tickets = () => {
       dataIndex: ["user", "name"],
       key: "customer",
       render: (_, record) => {
-        // Ưu tiên userInfo trước, sau đó mới đến user
-        const customerName = record.userInfo?.fullName || 
-                           record.customerName || 
-                           record.user?.name || 
-                           "Ẩn danh";
-        const customerEmail = record.userInfo?.email || 
-                            record.customerEmail || 
-                            record.user?.email || 
-                            "";
-        
+        const customerName =
+          record.userInfo?.fullName ||
+          record.customerName ||
+          record.user?.name ||
+          "Ẩn danh";
+        const customerEmail =
+          record.userInfo?.email ||
+          record.customerEmail ||
+          record.user?.email ||
+          "";
         return (
           <div>
-            <div style={{ fontWeight: 500 }}>
-              {customerName}
-            </div>
-            <div style={{ fontSize: 12, color: "#666" }}>
-              {customerEmail}
-            </div>
+            <div style={{ fontWeight: 500 }}>{customerName}</div>
+            <div style={{ fontSize: 12, color: "#666" }}>{customerEmail}</div>
           </div>
         );
       },
@@ -129,12 +124,12 @@ const Tickets = () => {
       title: "Phim",
       key: "movie",
       render: (_, record) => {
-        const movieName = record.movie?.name || 
-                         record.movie?.title || 
-                         record.movieName || 
-                         record.movieTitle || 
-                         "N/A";
-        
+        const movieName =
+          record.movie?.name ||
+          record.movie?.title ||
+          record.movieName ||
+          record.movieTitle ||
+          "N/A";
         return (
           <div style={{ fontWeight: 500 }}>
             <VideoCameraOutlined style={{ marginRight: 4 }} />
@@ -158,13 +153,13 @@ const Tickets = () => {
       title: "Ngày chiếu",
       key: "showDate",
       render: (_, record) => {
-        const showDate = record.showDate || 
-                        record.time?.showDate || 
-                        record.time?.date || 
-                        record.showtime?.showDate || 
-                        record.showtime?.date ||
-                        record.createdAt;
-        
+        const showDate =
+          record.showDate ||
+          record.time?.showDate ||
+          record.time?.date ||
+          record.showtime?.showDate ||
+          record.showtime?.date ||
+          record.createdAt;
         return showDate ? moment(showDate).format("DD/MM/YYYY") : "N/A";
       },
     },
@@ -172,20 +167,17 @@ const Tickets = () => {
       title: "Giờ chiếu",
       key: "showTime",
       render: (_, record) => {
-        const showTimeRaw = record.showTime || 
-                            record.time?.startTime || 
-                            record.time?.time || 
-                            record.showtime?.startTime || 
-                            record.showtime?.time ||
-                            record.startTime;
-
+        const showTimeRaw =
+          record.showTime ||
+          record.time?.startTime ||
+          record.time?.time ||
+          record.showtime?.startTime ||
+          record.showtime?.time ||
+          record.startTime;
         if (!showTimeRaw) return "N/A";
-
-        // Nếu là ISO string hoặc timestamp → format
         const showTimeMoment = moment(showTimeRaw);
-        if (!showTimeMoment.isValid()) return showTimeRaw; // fallback
-
-        return showTimeMoment.format("HH:mm"); // chỉ giờ:phút
+        if (!showTimeMoment.isValid()) return showTimeRaw;
+        return showTimeMoment.format("HH:mm");
       },
     },
     {
@@ -193,8 +185,6 @@ const Tickets = () => {
       key: "seats",
       render: (_, record) => {
         let seatNames = "";
-        
-        // Thử nhiều cách để lấy thông tin ghế
         if (record.seats && Array.isArray(record.seats)) {
           seatNames = record.seats
             .map((s) => {
@@ -202,16 +192,13 @@ const Tickets = () => {
               return s?.seatNumber || s?.name || s?.row + s?.column || s?._id?.slice(-3) || "N/A";
             })
             .join(", ");
-        } else if (record.seatNumbers) {
-          seatNames = record.seatNumbers;
-        } else if (record.seatNumber) {
-          seatNames = record.seatNumber;
-        } else if (record.selectedSeats && Array.isArray(record.selectedSeats)) {
+        } else if (record.seatNumbers) seatNames = record.seatNumbers;
+        else if (record.seatNumber) seatNames = record.seatNumber;
+        else if (record.selectedSeats && Array.isArray(record.selectedSeats)) {
           seatNames = record.selectedSeats
-            .map(s => s?.seatNumber || s?.name || "N/A")
+            .map((s) => s?.seatNumber || s?.name || "N/A")
             .join(", ");
         }
-        
         return seatNames || "N/A";
       },
     },
@@ -219,15 +206,14 @@ const Tickets = () => {
       title: "Tổng tiền",
       key: "totalPrice",
       render: (_, record) => {
-        // Thử nhiều trường có thể chứa giá tiền từ backend
-        const price = record.total || 
-                     record.totalPrice || 
-                     record.totalAmount ||
-                     record.price || 
-                     record.amount || 
-                     record.seatTotalPrice ||
-                     0;
-        
+        const price =
+          record.total ||
+          record.totalPrice ||
+          record.totalAmount ||
+          record.price ||
+          record.amount ||
+          record.seatTotalPrice ||
+          0;
         return (
           <div style={{ fontWeight: 600, color: "#52c41a" }}>
             {price.toLocaleString()}đ
@@ -242,7 +228,6 @@ const Tickets = () => {
         const status = record.status;
         let color = "default";
         let text = status;
-        
         switch (status) {
           case "completed":
           case "confirmed":
@@ -270,7 +255,6 @@ const Tickets = () => {
             color = "default";
             text = status || "Không rõ";
         }
-        
         return <Tag color={color}>{text}</Tag>;
       },
     },
@@ -278,11 +262,8 @@ const Tickets = () => {
       title: "Ngày đặt",
       key: "createdAt",
       render: (_, record) => {
-        const createdDate = record.createdAt || 
-                           record.bookingTime || 
-                           record.date ||
-                           record.confirmedAt;
-        
+        const createdDate =
+          record.createdAt || record.bookingTime || record.date || record.confirmedAt;
         return createdDate ? moment(createdDate).format("DD/MM/YY HH:mm") : "Không rõ";
       },
     },
@@ -292,7 +273,7 @@ const Tickets = () => {
     setPagination({
       current: paginationInfo.current,
       pageSize: paginationInfo.pageSize,
-      total: pagination.total,
+      total: filteredTickets.length,
     });
   };
 
@@ -313,16 +294,36 @@ const Tickets = () => {
       </div>
 
       <Card style={{ marginBottom: 16 }}>
-        <Row justify="space-between" align="middle">
+        <Row gutter={16} align="middle">
           <Col>
-            <Input.Search
-              placeholder="Tìm kiếm theo khách hàng, phim, rạp..."
-              allowClear
-              style={{ width: 400 }}
-              value={searchText}
-              onChange={(e) => setSearchText(e.target.value)}
-              onSearch={(v) => setSearchText(v)}
-            />
+            <Select
+              placeholder="Lọc theo phim"
+              style={{ width: 200 }}
+              value={selectedMovie}
+              onChange={(val) => setSelectedMovie(val)}
+            >
+              <Option value={null}>Tất cả</Option>
+              {movies.map((m) => (
+                <Option key={m._id} value={m._id}>
+                  {m.name || m.title}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col>
+            <Select
+              placeholder="Lọc theo rạp"
+              style={{ width: 200 }}
+              value={selectedCinema}
+              onChange={(val) => setSelectedCinema(val)}
+            >
+              <Option value={null}>Tất cả</Option>
+              {cinemas.map((c) => (
+                <Option key={c._id} value={c._id}>
+                  {c.name}
+                </Option>
+              ))}
+            </Select>
           </Col>
         </Row>
       </Card>
@@ -331,10 +332,12 @@ const Tickets = () => {
         <Spin spinning={loading}>
           <Table
             columns={columns}
-            dataSource={tickets}
+            dataSource={filteredTickets}
             rowKey="_id"
             pagination={{
-              ...pagination,
+              current: pagination.current,
+              pageSize: pagination.pageSize,
+              total: filteredTickets.length,
               showSizeChanger: true,
               showQuickJumper: true,
               showTotal: (total, range) =>
